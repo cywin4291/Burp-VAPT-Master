@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Burp Suite VAPT Master Guide</title>
+<style>
+:root{--bg:#0a0e17;--bg2:#111827;--bg3:#1a2233;--card:#141c2b;--border:#26304a;--txt:#e6edf5;--txt2:#9aa8bf;--acc:#ff6633;--acc2:#4da3ff;--ok:#3ecf8e;--warn:#f5b942;--crit:#ff4757;--high:#ff7043;--med:#f5b942;--low:#4da3ff;--info:#8a93a6;--mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace}
+[data-theme="light"]{--bg:#f4f6fb;--bg2:#fff;--bg3:#eef1f7;--card:#fff;--border:#d9dfea;--txt:#1a2233;--txt2:#5a6579;--acc:#e65a2b;--acc2:#2563eb;--info:#6b7280}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6}
+a{color:var(--acc2);text-decoration:none}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:6px}::-webkit-scrollbar-track{background:transparent}
+.app{display:grid;grid-template-columns:270px 1fr;height:100vh;overflow:hidden}
+/* Sidebar */
+.side{background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.brand{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.brand svg{flex:0 0 auto}
+.brand h1{font-size:15px;font-weight:700;letter-spacing:.2px}
+.brand span{color:var(--txt2);font-size:11px;display:block;font-weight:400}
+.navwrap{overflow-y:auto;flex:1;padding:8px 0 40px}
+.navgroup{margin:2px 0}
+.navgroup>.gt{padding:10px 18px 4px;font-size:10px;letter-spacing:1.2px;color:var(--txt2);text-transform:uppercase;font-weight:700}
+.navitem{display:flex;align-items:center;gap:8px;padding:7px 18px 7px 22px;cursor:pointer;color:var(--txt2);font-size:13px;border-left:2px solid transparent}
+.navitem:hover{background:var(--bg3);color:var(--txt)}
+.navitem.active{color:var(--txt);border-left-color:var(--acc);background:var(--bg3)}
+.navitem .dot{width:6px;height:6px;border-radius:50%;background:var(--ok);opacity:0;flex:0 0 auto}
+.navitem.done .dot{opacity:1}
+/* Main */
+.main{display:flex;flex-direction:column;overflow:hidden}
+.topbar{display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--bg2)}
+.search{flex:1;position:relative;max-width:560px}
+.search input{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--txt);padding:9px 12px 9px 34px;border-radius:8px;font-size:13px;outline:none}
+.search input:focus{border-color:var(--acc2)}
+.search .ic{position:absolute;left:10px;top:9px;color:var(--txt2)}
+.sresults{position:absolute;top:42px;left:0;right:0;background:var(--bg2);border:1px solid var(--border);border-radius:8px;max-height:60vh;overflow-y:auto;z-index:50;box-shadow:0 12px 40px rgba(0,0,0,.4);display:none}
+.sresults.show{display:block}
+.sres{padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border)}
+.sres:hover{background:var(--bg3)}
+.sres .cat{font-size:10px;color:var(--acc);text-transform:uppercase;letter-spacing:.5px}
+.sres .nm{font-weight:600;font-size:13px}
+.sres .ds{font-size:12px;color:var(--txt2)}
+.tbtn{background:var(--bg3);border:1px solid var(--border);color:var(--txt);width:36px;height:36px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.tbtn:hover{border-color:var(--acc2)}
+.content{overflow-y:auto;padding:26px 34px 80px;flex:1;scroll-behavior:smooth}
+.wrap{max-width:1080px;margin:0 auto}
+/* Typo */
+h2.pt{font-size:26px;font-weight:800;margin-bottom:4px;letter-spacing:-.3px}
+.crumb{color:var(--txt2);font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px}
+h3{font-size:17px;margin:22px 0 8px;color:var(--txt)}
+h4{font-size:14px;margin:16px 0 6px;color:var(--acc2);text-transform:uppercase;letter-spacing:.5px}
+p{margin:8px 0;color:var(--txt)}
+ul,ol{margin:8px 0 8px 22px}li{margin:4px 0}
+.muted{color:var(--txt2)}
+.lead{font-size:15px;color:var(--txt2);margin-bottom:8px}
+/* Cards */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin:14px 0}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:900px){.g2,.g3,.g4{grid-template-columns:1fr}}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+.stat .n{font-size:28px;font-weight:800}
+.stat .l{color:var(--txt2);font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+.bar{height:8px;background:var(--bg3);border-radius:6px;overflow:hidden;margin-top:8px}
+.bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2))}
+/* badges */
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.3px}
+.b-crit{background:rgba(255,71,87,.16);color:var(--crit)}
+.b-high{background:rgba(255,112,67,.16);color:var(--high)}
+.b-med{background:rgba(245,185,66,.16);color:var(--med)}
+.b-low{background:rgba(77,163,255,.16);color:var(--low)}
+.b-info{background:rgba(138,147,166,.18);color:var(--info)}
+.b-tool{background:rgba(77,163,255,.14);color:var(--acc2)}
+.b-tag{background:var(--bg3);color:var(--txt2);border:1px solid var(--border)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+/* code / http */
+pre{background:#05070d;border:1px solid var(--border);border-radius:10px;padding:14px 16px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.7;position:relative;color:#cfe3ff}
+[data-theme="light"] pre{background:#0d1220;color:#cfe3ff}
+pre .k{color:#ff8f66}pre .h{color:#7fd0ff}pre .v{color:#8ce6b0}pre .c{color:#6b7688}
+.copy{position:absolute;top:8px;right:8px;background:var(--bg3);border:1px solid var(--border);color:var(--txt2);font-size:10px;padding:3px 8px;border-radius:6px;cursor:pointer}
+.copy:hover{color:var(--txt);border-color:var(--acc2)}
+/* accordion */
+.acc{border:1px solid var(--border);border-radius:10px;margin:10px 0;overflow:hidden;background:var(--card)}
+.acc>.ah{padding:13px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600}
+.acc>.ah:hover{background:var(--bg3)}
+.acc>.ah .ar{margin-left:auto;transition:transform .2s;color:var(--txt2)}
+.acc.open>.ah .ar{transform:rotate(90deg)}
+.acc>.ab{display:none;padding:4px 18px 16px;border-top:1px solid var(--border)}
+.acc.open>.ab{display:block}
+/* flow */
+.flow{display:flex;flex-direction:column;align-items:stretch;gap:0;margin:14px 0}
+.flow .step{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--acc2);padding:11px 15px;border-radius:8px}
+.flow .step b{color:var(--txt)}
+.flow .arw{align-self:center;color:var(--acc);font-size:18px;line-height:1;padding:4px 0}
+.flow.h{flex-direction:row;flex-wrap:wrap;align-items:center}
+.flow.h .arw{padding:0 4px}
+.flow.h .step{flex:1;min-width:120px}
+/* table */
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px;margin:12px 0;display:block;overflow-x:auto}
+.tbl th,.tbl td{border:1px solid var(--border);padding:9px 11px;text-align:left;vertical-align:top}
+.tbl th{background:var(--bg3);color:var(--txt2);text-transform:uppercase;font-size:10.5px;letter-spacing:.5px;position:sticky;top:0}
+.tbl tr:hover td{background:var(--bg3)}
+/* buttons */
+.btn{background:var(--acc);color:#fff;border:none;padding:9px 16px;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent;border:1px solid var(--border);color:var(--txt)}
+.btn.ghost:hover{border-color:var(--acc2)}
+.btn.sm{padding:5px 11px;font-size:12px}
+.iconbtn{background:none;border:none;color:var(--txt2);cursor:pointer;padding:4px}
+.iconbtn:hover{color:var(--acc)}
+.iconbtn.on{color:var(--warn)}
+/* checklist */
+.chk{display:flex;align-items:flex-start;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border)}
+.chk input{margin-top:3px;width:16px;height:16px;accent-color:var(--acc);cursor:pointer}
+.chk label{cursor:pointer;flex:1}
+.chk.checked label{color:var(--txt2);text-decoration:line-through}
+/* filters */
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.fchip{padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:var(--card);color:var(--txt2);cursor:pointer;font-size:12px}
+.fchip.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+/* notes */
+textarea{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--txt);border-radius:8px;padding:10px;font-family:inherit;font-size:13px;resize:vertical;min-height:80px;outline:none}
+textarea:focus{border-color:var(--acc2)}
+input.fld,select.fld{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--txt);border-radius:8px;padding:9px 11px;font-size:13px;outline:none;font-family:inherit}
+input.fld:focus,select.fld:focus{border-color:var(--acc2)}
+.field{margin:10px 0}.field>label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--txt2);margin-bottom:4px}
+/* decision engine */
+.deopt{display:inline-flex;padding:9px 14px;border:1px solid var(--border);border-radius:8px;background:var(--card);cursor:pointer;margin:5px}
+.deopt:hover{border-color:var(--acc)}
+.deopt.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.callout{border-left:3px solid var(--warn);background:rgba(245,185,66,.08);padding:10px 14px;border-radius:0 8px 8px 0;margin:12px 0}
+.callout.ok{border-color:var(--ok);background:rgba(62,207,142,.08)}
+.callout.crit{border-color:var(--crit);background:rgba(255,71,87,.08)}
+.kv{display:grid;grid-template-columns:150px 1fr;gap:2px 14px}
+.kv .k{color:var(--txt2);font-size:12px;padding:5px 0}
+.kv .v{padding:5px 0}
+.hide{display:none!important}
+.tag-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:4px 0}
+.tools-inline{display:flex;gap:5px;flex-wrap:wrap}
+.reqbuilder .row{display:grid;grid-template-columns:110px 1fr;gap:8px;margin:6px 0}
+@media print{.side,.topbar{display:none}.app{display:block;height:auto}.content{overflow:visible;padding:0}.no-print{display:none!important}}
+@media(max-width:760px){.app{grid-template-columns:1fr}.side{position:fixed;z-index:100;width:270px;height:100%;transform:translateX(-100%);transition:transform .2s}.side.open{transform:none}.menu-toggle{display:flex!important}}
+.menu-toggle{display:none}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side" id="side">
+    <div class="brand">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 2l8 4v6c0 5-3.4 8.5-8 10-4.6-1.5-8-5-8-10V6l8-4z" fill="var(--acc)" opacity=".18"/><path d="M12 2l8 4v6c0 5-3.4 8.5-8 10-4.6-1.5-8-5-8-10V6l8-4z" stroke="var(--acc)" stroke-width="1.4"/><circle cx="12" cy="10" r="2.4" stroke="var(--acc2)" stroke-width="1.4"/><path d="M12 12.4V16" stroke="var(--acc2)" stroke-width="1.4"/></svg>
+      <div><h1>Burp VAPT Master<span>Field Manual &amp; Playbook</span></h1></div>
+    </div>
+    <div class="navwrap" id="nav"></div>
+  </aside>
+  <main class="main">
+    <div class="topbar">
+      <button class="tbtn menu-toggle" onclick="document.getElementById('side').classList.toggle('open')" title="Menu">☰</button>
+      <div class="search">
+        <span class="ic">🔍</span>
+        <input id="q" placeholder="Search tools, vulns, OWASP, CWE, headers, workflows…" autocomplete="off">
+        <div class="sresults" id="sres"></div>
+      </div>
+      <button class="tbtn" id="theme" title="Toggle theme">◐</button>
+      <button class="tbtn" onclick="go('bookmarks')" title="Bookmarks">★</button>
+    </div>
+    <div class="content" id="content"><div class="wrap" id="view"></div></div>
+  </main>
+</div>
+<script>
+/* ============ STORAGE (localStorage w/ in-memory fallback) ============ */
+const Store=(()=>{let ok=false,mem={};try{localStorage.setItem('__t','1');localStorage.removeItem('__t');ok=true}catch(e){ok=false}
+ const P='burpvapt.';
+ return{get(k,d){try{if(ok){const v=localStorage.getItem(P+k);return v==null?d:JSON.parse(v)}return k in mem?mem[k]:d}catch(e){return d}},
+ set(k,v){try{if(ok)localStorage.setItem(P+k,JSON.stringify(v));else mem[k]=v}catch(e){mem[k]=v}},
+ persistent:ok}})();
+let progress=Store.get('progress',{}),bookmarks=Store.get('bookmarks',[]),notes=Store.get('notes',{}),checks=Store.get('checks',{});
+function saveProgress(){Store.set('progress',progress)}
+function toggleDone(id){progress[id]=!progress[id];saveProgress();renderNav();if(current)go(current)}
+function isBM(id){return bookmarks.includes(id)}
+function toggleBM(id){bookmarks=isBM(id)?bookmarks.filter(x=>x!==id):[...bookmarks,id];Store.set('bookmarks',bookmarks);if(current)go(current)}
+function setNote(id,v){notes[id]=v;Store.set('notes',notes)}
+function toggleCheck(id){checks[id]=!checks[id];Store.set('checks',checks)}
+
+/* ============ DATA ============ */
+const SEV={crit:'Critical',high:'High',med:'Medium',low:'Low',info:'Informational'};
+const sevBadge=s=>`<span class="badge b-${s}">${SEV[s]||s}</span>`;
+const toolBadge=t=>`<span class="badge b-tool">${t}</span>`;
+
+/* Foundation topics */
+const FOUNDATION=[
+ {id:'f-overview',t:'Burp Suite Overview',b:'What Burp is and the mindset it enables',body:()=>`
+  <p class="lead">Burp Suite is an intercepting-proxy platform for testing web and API security. It sits between your browser (or API client) and the target, letting you observe, pause, modify, and replay every HTTP/S message.</p>
+  <p>Burp is not a "scan and report" button. Its power is that it makes the raw conversation between client and server fully visible and editable, so a human can reason about <b>trust boundaries</b>: what the server assumes, and whether those assumptions can be broken.</p>
+  <div class="callout"><b>Core idea used throughout this guide:</b> Baseline → Modify → Compare → Validate → Impact → Report. Burp is the instrument; your reasoning is the method.</div>
+  <h4>Editions</h4>
+  <ul><li><b>Community</b> — Proxy, Repeater, Decoder, Comparer; time-throttled Intruder; no automated scanner. Fine for learning manual testing.</li>
+  <li><b>Professional</b> — full Intruder, Scanner, Collaborator, project files, saved state. The standard for professional VAPT.</li>
+  <li><b>Enterprise</b> — CI/CD-oriented automated scanning at scale.</li></ul>
+  <h4>What you'll do with it</h4>
+  <ul><li>Capture and understand traffic (Proxy, HTTP History)</li><li>Manually probe endpoints (Repeater)</li><li>Run controlled, repeated payloads (Intruder)</li><li>Decode/encode and compare (Decoder, Comparer)</li><li>Confirm blind/out-of-band effects (Collaborator)</li></ul>`},
+ {id:'f-arch',t:'Burp Architecture',b:'How the proxy, tools, and traffic interconnect',body:()=>`
+  <p class="lead">Everything in Burp revolves around a shared HTTP message store fed by the Proxy. Tools pass requests to one another so you can move a single request from capture → manual test → payload testing without retyping.</p>
+  ${flow(['Browser / API client','Burp Proxy listener (127.0.0.1:8080)','Interception &amp; match/replace rules','HTTP History + WebSocket History store','Target site map &amp; scope','Send-to → Repeater / Intruder / Scanner','Target application / API'])}
+  <h4>Message lifecycle</h4>
+  ${flowH(['Request captured','Optionally paused (Intercept)','Recorded in History','Forwarded to server','Response captured','Recorded &amp; linked'])}
+  <h4>Why "send to" matters</h4>
+  <p>Right-click any request in Proxy/History/Target and route it to the right tool. This preserves headers, cookies, and body exactly — critical for authenticated testing where a single missing token changes the result.</p>`},
+ {id:'f-http',t:'HTTP Fundamentals',b:'Methods, status codes, structure of a request/response',body:()=>`
+  <p class="lead">You cannot test what you cannot read. Every finding ultimately comes down to a difference in an HTTP message.</p>
+  <h4>Anatomy of a request</h4>
+  ${httpReq(`POST /api/v1/orders/1001 HTTP/1.1
+Host: shop.example.test
+Authorization: Bearer <TEST-TOKEN>
+Content-Type: application/json
+Cookie: session=<TEST-SESSION>
+
+{"qty":1,"couponId":"WELCOME"}`)}
+  <div class="kv">
+   <div class="k">Request line</div><div class="v">Method + path + version</div>
+   <div class="k">Headers</div><div class="v">Metadata: auth, content type, host, cookies</div>
+   <div class="k">Body</div><div class="v">Payload for POST/PUT/PATCH</div>
+  </div>
+  <h4>Methods worth testing</h4>
+  <ul><li><b>GET</b> read; <b>POST</b> create/act; <b>PUT/PATCH</b> update; <b>DELETE</b> remove; <b>OPTIONS</b> capabilities/CORS preflight; <b>HEAD</b> headers only.</li>
+  <li>Method swapping (GET↔POST, or DELETE on a read endpoint) often reveals missing method-level authorization.</li></ul>
+  <h4>Status codes as signals</h4>
+  <table class="tbl"><tr><th>Class</th><th>Meaning</th><th>Testing relevance</th></tr>
+  <tr><td>2xx</td><td>Success</td><td>Action allowed — check whether it should have been</td></tr>
+  <tr><td>3xx</td><td>Redirect</td><td>Open redirect, auth flow, host header effects</td></tr>
+  <tr><td>401/403</td><td>Unauth/forbidden</td><td>Access control boundary; compare with 200 for another user</td></tr>
+  <tr><td>500</td><td>Server error</td><td>Injection/parse issues; but an error alone is not a vuln</td></tr></table>`},
+ {id:'f-tls',t:'HTTPS / TLS',b:'Why Burp needs a CA cert to read encrypted traffic',body:()=>`
+  <p class="lead">HTTPS encrypts traffic end-to-end. To read it, Burp performs an authorized man-in-the-middle on your own machine: the browser trusts Burp's CA, Burp decrypts, then re-encrypts to the server.</p>
+  <h4>Install Burp's CA certificate</h4>
+  <ol><li>With the proxy running, browse to <b>http://burp</b> and download the CA (<span class="muted">cacert.der</span>).</li>
+  <li>Import it into the browser/OS trust store as a trusted root.</li>
+  <li>Verify HTTPS sites now show in HTTP History without TLS errors.</li></ol>
+  <div class="callout crit"><b>Scope discipline:</b> Only ever install and use this to intercept systems you are authorized to test. Remove trust when done on shared machines.</div>
+  <h4>Common TLS observations</h4>
+  <ul><li>Missing <b>HSTS</b> — downgrade exposure (an indicator, not automatically a finding).</li><li>Weak protocol/cipher config — verify with a TLS scanner, not Burp alone.</li></ul>`},
+ {id:'f-reqres',t:'Requests vs Responses',b:'What you control vs what you observe',body:()=>`
+  <p class="lead">You control the <b>request</b>. You observe the <b>response</b>. Testing is the disciplined study of how changes to the former alter the latter.</p>
+  <div class="grid g2"><div class="card"><h4>You can change</h4><ul><li>Method, path, query/path params</li><li>Headers (Auth, Cookie, Origin, Host, Content-Type)</li><li>Body (JSON/XML/form/multipart/GraphQL)</li></ul></div>
+  <div class="card"><h4>You should read</h4><ul><li>Status code &amp; redirects</li><li>Response headers &amp; set-cookie</li><li>Body content &amp; reflections</li><li>Timing &amp; size deltas</li><li>Error detail / stack traces</li></ul></div></div>
+  <div class="callout">A single changed byte and a single observed difference is the atom of every web finding. Keep changes isolated so you know what caused what.</div>`},
+ {id:'f-headers',t:'Headers',b:'Security-relevant request and response headers',body:()=>`
+  <h4>Request headers to watch</h4>
+  <table class="tbl"><tr><th>Header</th><th>Why it matters</th></tr>
+  <tr><td>Authorization</td><td>Bearer/Basic token — remove or swap to test auth</td></tr>
+  <tr><td>Cookie</td><td>Session &amp; auth state — swap between users for IDOR</td></tr>
+  <tr><td>Origin / Referer</td><td>CORS &amp; CSRF checks</td></tr>
+  <tr><td>Host / X-Forwarded-Host</td><td>Routing, password-reset links, cache keys</td></tr>
+  <tr><td>Content-Type</td><td>Parser selection — changing it can bypass weak checks (or be meaningless)</td></tr></table>
+  <h4>Response security headers</h4>
+  <table class="tbl"><tr><th>Header</th><th>Purpose</th></tr>
+  <tr><td>Strict-Transport-Security</td><td>Force HTTPS (HSTS)</td></tr>
+  <tr><td>Content-Security-Policy</td><td>Mitigate XSS/data injection</td></tr>
+  <tr><td>X-Content-Type-Options</td><td>Prevent MIME sniffing</td></tr>
+  <tr><td>X-Frame-Options / frame-ancestors</td><td>Clickjacking defense</td></tr>
+  <tr><td>Set-Cookie flags</td><td>HttpOnly, Secure, SameSite</td></tr></table>
+  <div class="callout">A missing header is an <b>indicator</b>. Its severity depends on whether the weakness it defends against is actually reachable in this app.</div>`},
+ {id:'f-cookies',t:'Cookies',b:'Session cookies, flags, and manipulation',body:()=>`
+  <p class="lead">Cookies carry session and auth state. Inspect flags and test whether values can be tampered, replayed, or fixated.</p>
+  <ul><li><b>HttpOnly</b> — blocks JS access (XSS token theft mitigation)</li><li><b>Secure</b> — HTTPS-only transmission</li><li><b>SameSite</b> — Lax/Strict/None affects CSRF exposure</li></ul>
+  <h4>Tests</h4><ul><li>Remove/alter session cookie → does the server fail closed?</li><li>Reuse an old session after logout (session invalidation)</li><li>Set a session before login and see if it's honored after (fixation)</li></ul>`},
+ {id:'f-sessions',t:'Sessions',b:'How server-side state is tracked and where it breaks',body:()=>`
+  <p class="lead">A session ties requests to an authenticated identity. Test creation, use, expiry, and invalidation.</p>
+  <ul><li><b>Creation</b> — is a new token issued at login? (fixation defense)</li><li><b>Entropy</b> — is the token unpredictable? Use <b>Sequencer</b>.</li><li><b>Expiry</b> — idle/absolute timeout enforced server-side?</li><li><b>Invalidation</b> — does logout/password-change kill existing sessions?</li></ul>`},
+ {id:'f-authn',t:'Authentication',b:'Proving who you are — and where it fails',body:()=>`
+  <p class="lead">Authentication establishes identity. Testing looks for bypasses, weak handling, and flawed recovery.</p>
+  <ul><li>Login, registration, password reset, MFA, account recovery</li><li>Credential handling (transmission, storage hints, error messages)</li><li>Failure handling — lockout, rate limiting, user enumeration</li></ul>
+  <p>See the dedicated <a onclick="go('w-authn')">Authentication Testing Workflow</a>.</p>`},
+ {id:'f-authz',t:'Authorization',b:'What you are allowed to do — horizontal & vertical',body:()=>`
+  <p class="lead">Authorization decides what an authenticated identity may access. The most common serious web findings live here.</p>
+  <ul><li><b>Horizontal</b> — access another user's data at the same privilege level (IDOR/BOLA).</li><li><b>Vertical</b> — access higher-privilege functions (privilege escalation, BFLA).</li></ul>
+  <p>Best tested with <b>Proxy + Repeater + Comparer</b> using two authorized test accounts. See <a onclick="go('w-idor')">IDOR/BOLA Master Workflow</a>.</p>`},
+ {id:'f-rest',t:'REST APIs',b:'Resource-oriented endpoints and how to map them',body:()=>`
+  <p class="lead">REST exposes resources via predictable paths and methods. Object identifiers in the path are prime IDOR territory.</p>
+  ${httpReq(`GET /api/v1/users/1001/invoices/55 HTTP/1.1
+Host: api.example.test
+Authorization: Bearer <TEST-TOKEN>`)}
+  <ul><li>Enumerate endpoints from HTTP History, Swagger/OpenAPI, JS files.</li><li>Test each method per endpoint; test object IDs across accounts.</li><li>Watch for excessive data exposure in responses.</li></ul>`},
+ {id:'f-graphql',t:'GraphQL',b:'Single endpoint, introspection, queries & mutations',body:()=>`
+  <p class="lead">GraphQL usually exposes one endpoint (e.g. <span class="muted">/graphql</span>) accepting queries and mutations. Authorization is per-field and often inconsistent.</p>
+  <ul><li>Try introspection to map the schema.</li><li>Test field/mutation-level authorization individually.</li><li>Watch nested/aliased queries for DoS and data exposure.</li></ul>
+  <p>See <a onclick="go('w-graphql')">GraphQL Testing</a>.</p>`},
+ {id:'f-ws',t:'WebSockets',b:'Persistent bidirectional channels',body:()=>`
+  <p class="lead">WebSockets keep a long-lived channel open. Burp's WebSocket History lets you observe and replay messages.</p>
+  <ul><li>Messages often skip the per-request auth checks HTTP endpoints have.</li><li>Test message-level authorization, input validation, and origin controls.</li></ul>
+  <p>See <a onclick="go('w-websocket')">WebSocket Testing</a>.</p>`},
+ {id:'f-jwt',t:'JWT',b:'Header.Payload.Signature and what to inspect',body:()=>`
+  <p class="lead">A JWT is three base64url parts: header, payload, signature. Decode (never trust) and reason about how the server validates it.</p>
+  ${httpReq(`eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9   <- header
+.eyJzdWIiOiIxMDAxIiwicm9sZSI6InVzZXIifQ  <- payload
+.<signature>`)}
+  <ul><li>Inspect <b>alg</b>, <b>exp</b>, <b>iss</b>, <b>aud</b>, <b>sub</b>, role claims.</li><li>Only server-side acceptance of a tampered token proves a flaw.</li></ul>
+  <p>See <a onclick="go('w-jwt')">JWT Testing</a>.</p>`},
+ {id:'f-oauth',t:'OAuth 2.0',b:'Delegated authorization flows and their pitfalls',body:()=>`
+  <p class="lead">OAuth grants third-party access without sharing credentials. Common issues cluster around redirect URIs, state, and token handling.</p>
+  <ul><li><b>redirect_uri</b> validation weaknesses → token/code theft.</li><li>Missing/weak <b>state</b> → CSRF in the flow.</li><li>Scope creep, token leakage via referrer/logs.</li></ul>`},
+ {id:'f-saml',t:'SAML',b:'XML-based SSO assertions',body:()=>`
+  <p class="lead">SAML carries signed XML assertions for SSO. Testing centers on signature validation and assertion tampering.</p>
+  <ul><li>Signature wrapping / exclusion — does the SP verify the signature correctly?</li><li>Assertion replay, audience/recipient checks, expiry.</li></ul>`},
+ {id:'f-cors',t:'CORS',b:'Cross-origin resource sharing controls',body:()=>`
+  <p class="lead">CORS response headers tell the browser which origins may read cross-origin responses. Misconfig can leak authenticated data.</p>
+  <ul><li>Reflected <b>Access-Control-Allow-Origin</b> + <b>Allow-Credentials: true</b> is dangerous.</li><li>A permissive header alone isn't exploitable — the endpoint must return sensitive, credentialed data.</li></ul>
+  <p>See <a onclick="go('w-cors')">CORS Testing</a> and the vuln card.</p>`}
+]; /*END_FOUNDATION*/
+
+/* Burp tools — full template */
+function toolFull(o){return `
+ <p class="lead">${o.what}</p>
+ <h4>Why a VAPT tester uses it</h4><p>${o.why}</p>
+ <h4>When to use it</h4><ul>${o.when.map(x=>`<li>${x}</li>`).join('')}</ul>
+ <div class="grid g2"><div class="card"><h4>Input</h4><p>${o.input}</p></div><div class="card"><h4>Output to inspect</h4><p>${o.output}</p></div></div>
+ <h4>Common workflow</h4>${flow(o.workflow)}
+ <h4>Vulnerabilities investigated</h4><div class="chips">${o.vulns.map(v=>`<span class="badge b-tag">${v}</span>`).join('')}</div>
+ ${o.inspect?`<h4>HTTP components to inspect</h4><div class="chips">${o.inspect.map(v=>`<span class="badge b-tag">${v}</span>`).join('')}</div>`:''}
+ ${o.change?`<h4>What to change</h4><p>${o.change}</p>`:''}
+ ${o.observe?`<h4>What to observe</h4><p>${o.observe}</p>`:''}
+ <div class="grid g2"><div class="card"><h4>Vulnerable behavior</h4><p>${o.vuln}</p></div><div class="card"><h4>Secure behavior</h4><p>${o.secure}</p></div></div>
+ <h4>Validation (real vs false positive)</h4><p>${o.validation}</p>
+ <div class="grid g2"><div class="card"><h4>Evidence to capture</h4><p>${o.evidence}</p></div><div class="card"><h4>Reporting</h4><p>${o.reporting}</p></div></div>
+ ${o.extra||''}`}
+
+const TOOLS=[
+ {id:'t-proxy',t:'Proxy',b:'Capture, intercept, and rewrite traffic',build:o=>toolFull({
+  what:'The Proxy is the heart of Burp — an intercepting HTTP/S proxy between your browser/client and the target. It records every message and lets you pause and modify them in flight.',
+  why:'It gives you complete visibility of the client↔server conversation and the ability to edit any part of a request before it reaches the server.',
+  when:['At the very start of every engagement to build the site map','Whenever you need to see exactly what the client sends','To rewrite requests/responses automatically with match &amp; replace'],
+  input:'Browser configured to route through 127.0.0.1:8080 with Burp\'s CA trusted; the app driven manually.',
+  output:'HTTP History and WebSocket History tables; intercepted messages awaiting edit/forward.',
+  workflow:['Start proxy listener (127.0.0.1:8080)','Configure browser + trust CA','Set target scope','Browse the app to populate History','Toggle Intercept to pause/edit key requests','Send interesting requests to Repeater/Intruder'],
+  vulns:['All — Proxy is the entry point','Auth','Access control','Injection','CORS','Host header','Business logic'],
+  inspect:['Method','URL','Query params','Path params','Headers','Cookies','Body','JSON','XML','Multipart','GraphQL'],
+  change:'Any element live via Intercept, or systematically via Match &amp; Replace rules (e.g. force a header, strip a token, rewrite a response flag).',
+  observe:'Whether the server accepts the modified request, and how the response changes versus the untouched baseline.',
+  vuln:'Server acts on client-controlled values it should validate server-side (e.g. price, role, isAdmin honored from the request).',
+  secure:'Server re-derives trust decisions server-side and ignores client-supplied authority claims.',
+  validation:'A modified request producing a security-relevant change must be reproduced cleanly and explained — not just "the response looked different".',
+  evidence:'Screenshot the modified request + resulting response, plus the unmodified baseline for contrast.',
+  reporting:'Include exact request/response pairs, the single change made, and the observed effect.',
+  extra:`<h4>Request flow</h4>${flowH(['Browser','Burp Proxy','Inspect / modify','Target'])}${flowH(['Target','Burp Proxy','Inspect / modify','Browser'])}
+   <h4>Scope &amp; match/replace</h4><ul><li><b>Scope</b> keeps History focused and prevents you touching out-of-scope hosts.</li><li><b>Match &amp; Replace</b> automates repetitive edits (inject a header, neutralize a client-side control) across all traffic.</li></ul>`}) },
+ {id:'t-target',t:'Target',b:'Site map, scope, and application mapping',build:o=>toolFull({
+  what:'Target aggregates everything Burp has seen into a hierarchical site map, and defines the engagement scope that governs all tools.',
+  why:'Mapping the attack surface is the foundation of a thorough test — you can only test what you have discovered.',
+  when:['Continuously, to track discovered endpoints','To set scope so History/Scanner stay in-bounds','To review which endpoints remain unexplored'],
+  input:'Traffic from browsing, plus optionally imported OpenAPI/site definitions.',
+  output:'A tree of hosts, paths, params, and observed requests/responses.',
+  workflow:['Define in-scope hosts','Browse to populate the map','Review tree for endpoints/params','Flag high-value functions (admin, upload, payment)','Send items to Repeater/Intruder'],
+  vulns:['Forced browsing','Hidden endpoints','Attack-surface gaps'],
+  vuln:'Sensitive or admin functionality reachable that was not linked in the UI (found by mapping, not by the app advertising it).',
+  secure:'Sensitive functions are properly authorized regardless of whether they are discoverable.',
+  validation:'Finding an endpoint is discovery, not a vulnerability — you must then prove unauthorized access to it.',
+  evidence:'Site map screenshot highlighting the endpoint plus the authorized/unauthorized request pair.',
+  reporting:'Document how the endpoint was discovered and the access-control result.',
+  extra:`<h4>Application Mapping Checklist</h4>${miniChecklist('map',['Domains','Subdomains','Paths','APIs','Authentication endpoints','Admin functionality','File upload','Download','Search','Export','Import','Payment','User management','Password reset','Profile management','Object references','Third-party integrations'])}`}) },
+ {id:'t-history',t:'HTTP History',b:'The searchable record of everything seen',build:o=>toolFull({
+  what:'HTTP History is the chronological, filterable log of every proxied request/response.',
+  why:'It is where you discover endpoints, parameters, tokens, and integrations — the raw material for targeted testing.',
+  when:['During and after browsing, to mine the traffic','To locate a specific request to send to another tool','To spot sensitive params and headers'],
+  input:'Proxied traffic.',
+  output:'A table you can filter by host, method, status, MIME, params, and search term.',
+  workflow:['Browse thoroughly','Filter by in-scope host','Sort/search for interesting endpoints','Identify tokens/params/uploads','Send to Repeater/Intruder'],
+  vulns:['Information disclosure','Hidden params','Sensitive data in transit'],
+  inspect:['Login endpoints','API endpoints','Admin endpoints','Hidden params','Auth headers','JWTs','Upload endpoints','GraphQL endpoints','Debug/error endpoints'],
+  vuln:'Sensitive data, tokens, or internal endpoints exposed in requests/responses that a lower-privileged or external party could reach.',
+  secure:'Minimal data returned; internal/debug endpoints not exposed; tokens scoped and short-lived.',
+  validation:'Presence in History shows exposure to you; confirm the exposure is reachable by an unintended party.',
+  evidence:'Filtered History view + the specific request/response.',
+  reporting:'Note how the endpoint/param was discovered and its sensitivity.',
+  extra:`<h4>What should I look for?</h4>${miniChecklist('hist',['Login endpoints','API endpoints','Admin endpoints','Hidden parameters','Sensitive parameters','Cookies','Authorization headers','JWTs','File upload endpoints','GraphQL endpoints','Internal APIs','Third-party integrations','Error endpoints','Debug endpoints'])}`}) },
+ {id:'t-repeater',t:'Repeater',b:'Manually modify and replay a single request',build:o=>toolFull({
+  what:'Repeater lets you take one request, edit any part of it, resend it, and study the response — repeatedly and precisely.',
+  why:'It is the primary manual-testing tool. Almost every confirmed finding is demonstrated in Repeater by showing a controlled change and its effect.',
+  when:['Testing IDOR/BOLA by swapping IDs or tokens','Probing injection with controlled payloads','Testing auth/authz by removing or swapping credentials','Any time you need surgical, repeatable request edits'],
+  input:'A single request (usually sent from Proxy/History).',
+  output:'The full response for each variation — status, headers, body, timing, length.',
+  workflow:['Capture request','Send to Repeater','Establish baseline response','Modify one parameter','Send','Compare response to baseline','Identify behavior change','Validate impact','Repeat with controlled variations'],
+  vulns:['IDOR/BOLA','Auth bypass','Authorization','SQLi','XSS','SSRF','Command injection','Path traversal','File upload','HTTP method testing','Header/cookie manipulation','JWT','API','Business logic','Rate limiting','CORS','Host header'],
+  inspect:['Method','URL','Params','Headers','Cookies','Body'],
+  change:'One security-relevant element at a time: an object ID, a role field, an auth header, a single injected character.',
+  observe:'Status, length, timing, error text, and body differences versus the baseline.',
+  vuln:'A change that should be rejected is accepted (e.g. another user\'s record returned, an injected quote breaks a query).',
+  secure:'Server rejects unauthorized/invalid changes consistently and fails closed.',
+  validation:'Reproduce the effect, isolate the single change responsible, and explain the trust boundary crossed.',
+  evidence:'Baseline request/response and modified request/response side by side.',
+  reporting:'Provide both pairs and a one-line description of the change and outcome.',
+  extra:`<div class="callout ok">Repeater is where the <b>Baseline → Modify → Compare → Validate</b> model lives. Keep a clean baseline tab so every comparison is honest.</div>`}) },
+ {id:'t-intruder',t:'Intruder',b:'Controlled, repeated payload testing',build:o=>toolFull({
+  what:'Intruder automates sending many variations of a request by inserting payloads at marked positions and recording each response.',
+  why:'It scales manual testing to many values — enumeration, fuzzing, and controlled brute-style checks — while you analyze response differences.',
+  when:['Fuzzing a parameter with many inputs','Enumerating IDs to test access control at scale','Probing rate limiting','Discovering hidden parameters'],
+  input:'A base request with payload positions (§markers§) and one or more payload sets.',
+  output:'A results table of every response with status, length, and grep matches.',
+  workflow:['Send request to Intruder','Mark payload positions','Choose attack type','Load payload set(s)','Configure grep-match/extract','Run','Sort results by length/status/match','Investigate outliers manually'],
+  vulns:['Parameter fuzzing','Auth testing','Authorization at scale','ID enumeration','Rate-limit testing','Input validation','Hidden parameter discovery','Token testing'],
+  inspect:['Payload position','Status','Length','Grep matches','Timing'],
+  vuln:'An outlier response (different status/length/content) indicates a value that broke expected behavior — a candidate to confirm in Repeater.',
+  secure:'Uniform handling across values; effective rate limiting/lockout; no distinguishable success signal for invalid input.',
+  validation:'An Intruder outlier is a lead, not a finding. Reproduce the single interesting case in Repeater and reason about impact.',
+  evidence:'Results table highlighting the outlier + the confirming Repeater pair.',
+  reporting:'Show the payload set logic and the specific confirmed case (not the whole table as "proof").',
+  extra:`<h4>Attack types</h4><table class="tbl"><tr><th>Type</th><th>Positions</th><th>Use</th></tr>
+   <tr><td>Sniper</td><td>1 payload set, one position at a time</td><td>Single-parameter fuzzing</td></tr>
+   <tr><td>Battering ram</td><td>Same payload in all positions</td><td>Same value everywhere</td></tr>
+   <tr><td>Pitchfork</td><td>Parallel sets, in lockstep</td><td>Paired values (user/pass lists)</td></tr>
+   <tr><td>Cluster bomb</td><td>All combinations</td><td>Full matrix (small sets only)</td></tr></table>
+   <div class="callout"><b>Per example, always ask:</b> Why Intruder? What is the baseline? What parameter is tested? What response difference matters? What does <i>not</i> automatically mean vulnerability?</div>
+   <p class="muted">Note: Burp Community throttles Intruder; Professional runs at full speed with resource pools.</p>`}) },
+ {id:'t-scanner',t:'Scanner',b:'Automated crawl & audit — with mandatory manual validation',build:o=>toolFull({
+  what:'Scanner (Burp Pro) crawls the app and performs passive and active audits to surface potential issues automatically.',
+  why:'It covers breadth quickly and flags candidates, freeing you to focus manual effort — but it does not confirm exploitability or business impact.',
+  when:['Broad coverage on large apps','As a lead generator for manual testing','Passive analysis of already-proxied traffic'],
+  input:'A scan configuration (crawl + audit) scoped to authorized targets.',
+  output:'A list of findings with confidence/severity that you must review.',
+  workflow:['Configure crawl','Configure audit scope','Run passive first','Run active where authorized','Review each finding','Manually reproduce before reporting'],
+  vulns:['Broad categories as leads: injection, XSS, misconfig, disclosure'],
+  vuln:'A flagged issue that you then reproduce manually and tie to real impact.',
+  secure:'Findings that fail manual reproduction (false positives) or lack real impact in context.',
+  validation:'See the Manual Validation Checklist below — every scanner finding requires it.',
+  evidence:'Your manual reproduction, not the scanner screenshot alone.',
+  reporting:'Report only manually confirmed issues; note the scanner as the discovery source.',
+  extra:`<div class="callout crit"><b>Scanner finding ≠ confirmed vulnerability.</b> Treat every result as a lead.</div>
+   <h4>Manual Validation Checklist</h4>${miniChecklist('scan',['Understand the issue','Locate the affected request','Reproduce manually','Establish baseline','Modify request','Observe behavior','Determine exploitability','Determine impact','Confirm true/false positive','Capture evidence'])}`}) },
+ {id:'t-sequencer',t:'Sequencer',b:'Statistical randomness of tokens',build:o=>toolFull({
+  what:'Sequencer collects many token samples and runs statistical tests to estimate their entropy/predictability.',
+  why:'Predictable session, reset, or verification tokens can be guessed or forged — Sequencer quantifies that risk.',
+  when:['Assessing session token randomness','Password-reset / email-verification token quality','Any security token you can sample repeatedly'],
+  input:'A request that issues a fresh token; Burp captures many samples.',
+  output:'An entropy estimate and per-bit analysis.',
+  workflow:['Locate token-issuing response','Configure sample location','Capture a large sample set','Run analysis','Interpret entropy'],
+  vulns:['Weak session tokens','Predictable reset/verification tokens'],
+  vuln:'Low effective entropy suggesting tokens may be predictable.',
+  secure:'High entropy, unpredictable, cryptographically generated tokens.',
+  validation:'Low entropy is statistical evidence; a true finding ideally shows a predicted/guessed token is accepted server-side.',
+  evidence:'Sequencer report + any demonstration of prediction where safe/authorized.',
+  reporting:'Include sample size and entropy results; be careful not to overstate without a working prediction.',
+  extra:`<div class="callout">Sequencer is useful only when you can collect many independent samples of the <i>same</i> token type. It says nothing about tokens you can\'t sample.</div>`}) },
+ {id:'t-decoder',t:'Decoder',b:'Transform, decode, and encode data',build:o=>toolFull({
+  what:'Decoder transforms data between encodings: URL, Base64, hex, HTML, ASCII, and more, with smart-decode.',
+  why:'Understanding encoded values (tokens, params, JWTs) is essential to reason about what the server actually processes.',
+  when:['Decoding suspicious parameters or tokens','Crafting encoded payloads','Inspecting JWT parts (base64url)'],
+  input:'Any string.',
+  output:'Its decoded/encoded form and hash.',
+  workflow:['Paste value','Try smart-decode','Identify encoding layers','Decode fully','Reason about the plaintext meaning'],
+  vulns:['Encoding-based filter bypass','Token structure analysis'],
+  vuln:'Sensitive data trivially decodable (e.g. base64 "encryption"), or filters bypassable via alternate encodings.',
+  secure:'Encoding used for transport only; security never relies on obscurity of encoding.',
+  validation:'Decoding reveals structure; a finding still needs the server to act insecurely on it.',
+  evidence:'Before/after encoding views.',
+  reporting:'Show the decoded value and its security relevance.',
+  extra:`<h4>Encoding Identification Cheat Sheet</h4><table class="tbl"><tr><th>Pattern</th><th>Likely encoding</th><th>Burp action</th><th>Relevance</th></tr>
+   <tr><td>%2F %20</td><td>URL encoding</td><td>URL-decode</td><td>Filter bypass, path tricks</td></tr>
+   <tr><td>ends with = / ==</td><td>Base64</td><td>Base64-decode</td><td>Hidden data, tokens</td></tr>
+   <tr><td>xxHHxx hex</td><td>Hex</td><td>ASCII-hex decode</td><td>Obfuscated values</td></tr>
+   <tr><td>&amp;lt; &amp;#x27;</td><td>HTML entities</td><td>HTML-decode</td><td>XSS context analysis</td></tr>
+   <tr><td>eyJ… . … . …</td><td>JWT (base64url)</td><td>Decode parts</td><td>Claims &amp; alg inspection</td></tr></table>`}) },
+ {id:'t-comparer',t:'Comparer',b:'Word/byte diff of two items',build:o=>toolFull({
+  what:'Comparer performs a visual word- or byte-level diff between two requests or responses.',
+  why:'Access-control and logic testing is fundamentally about differences between responses — Comparer makes those differences precise.',
+  when:['Comparing two users\' responses for the same endpoint','Diffing error vs success responses','Before/after a single change'],
+  input:'Two items (responses or requests) loaded into Comparer.',
+  output:'A highlighted diff.',
+  workflow:['Capture response A (e.g. owner)','Capture response B (e.g. attacker)','Load both into Comparer','Diff by words/bytes','Interpret meaningful deltas'],
+  vulns:['IDOR/BOLA','Authentication','Authorization','Business logic','Role comparison'],
+  vuln:'Two identities receive substantively the same sensitive data when they should not.',
+  secure:'Unauthorized identity gets an error or an empty/scoped response.',
+  validation:'A diff shows what changed; you must argue why the change proves an access-control failure, not a benign difference.',
+  evidence:'The Comparer diff plus both source requests.',
+  reporting:'Explain which fields prove cross-account access.',
+  extra:''}) },
+ {id:'t-logger',t:'Logger',b:'Unified searchable log of all Burp-tool traffic',build:o=>toolFull({
+  what:'Logger records all HTTP traffic generated by every Burp tool in one searchable place.',
+  why:'It gives an audit trail of exactly what you sent — useful for reproducing findings and demonstrating you stayed in scope.',
+  when:['Reviewing everything Burp sent','Reproducing a sequence of requests','Scope/audit evidence'],
+  input:'All Burp-tool traffic (automatic).',
+  output:'A filterable, searchable request/response log.',
+  workflow:['Enable logging','Perform testing','Filter by tool/host/status','Export relevant entries'],
+  vulns:['Supports all — evidence &amp; reproduction'],
+  vuln:'N/A — supporting tool.',
+  secure:'N/A.',
+  validation:'Use it to confirm you can re-derive a finding from recorded requests.',
+  evidence:'Exported log entries for the finding sequence.',
+  reporting:'Attach the request sequence that reproduces the issue.',
+  extra:''}) },
+ {id:'t-ext',t:'Extensions',b:'BApp Store and custom extensions',build:o=>toolFull({
+  what:'Extensions extend Burp via the BApp Store or custom Java/Python/JS modules.',
+  why:'They add specialized capabilities (JWT tooling, autorize-style access-control checks, param mining) that speed and deepen testing.',
+  when:['Access-control automation','JWT/GraphQL tooling','Param discovery','Custom workflows'],
+  input:'Extensions installed from BApp Store or loaded manually.',
+  output:'New tabs, scan checks, or context actions.',
+  workflow:['Browse BApp Store','Assess extension trust/source','Install','Configure','Use within workflow'],
+  vulns:['Depends on the extension'],
+  vuln:'N/A — capability layer.',
+  secure:'N/A.',
+  validation:'Extension output is still a lead requiring manual confirmation.',
+  evidence:'Manual reproduction, plus extension output as supporting context.',
+  reporting:'Note tool assistance but base the finding on manual proof.',
+  extra:`<div class="callout crit">Extensions run with Burp\'s privileges. Vet the source; do not blindly install untrusted extensions. Avoid ones that exfiltrate data.</div>
+   <h4>Extension selection (illustrative categories)</h4><table class="tbl"><tr><th>Category</th><th>Purpose</th><th>VAPT scenario</th></tr>
+   <tr><td>Access-control checker</td><td>Replay each request as another role</td><td>Systematic IDOR/BFLA detection</td></tr>
+   <tr><td>JWT editor</td><td>Inspect/modify tokens</td><td>JWT validation testing</td></tr>
+   <tr><td>Param miner</td><td>Discover hidden params/headers</td><td>Cache poisoning, hidden inputs</td></tr>
+   <tr><td>GraphQL tooling</td><td>Introspection &amp; query building</td><td>GraphQL authz testing</td></tr></table>`}) },
+ {id:'t-collab',t:'Collaborator',b:'Out-of-band interaction capture',build:o=>toolFull({
+  what:'Collaborator (Burp Pro) provides a unique external domain that captures DNS/HTTP/SMTP callbacks, proving blind, out-of-band interactions.',
+  why:'Many serious issues (SSRF, blind injection, XXE) produce no visible response — only a server-side callback confirms them.',
+  when:['SSRF confirmation','Blind XXE / command / SQL injection indicators','Any suspected external callback'],
+  input:'A Collaborator payload URL/hostname placed into a target parameter.',
+  output:'Captured DNS/HTTP interactions tied to your payload.',
+  workflow:['Generate Collaborator payload','Insert into candidate parameter','Send request','Observe interactions','Correlate to the request'],
+  vulns:['SSRF','Blind XXE','Blind command injection','Blind SQLi indicators','External callbacks'],
+  vuln:'The target server initiates an interaction to your Collaborator, proving it processed your URL/payload server-side.',
+  secure:'No out-of-band interaction; input is not used to make server-side requests, or egress is restricted.',
+  validation:'A callback proves reachability/processing — but not automatically business impact. You must then determine what the SSRF can reach or read.',
+  evidence:'The Collaborator interaction record + the triggering request.',
+  reporting:'Show the payload, the interaction, and a sober assessment of exploitable impact.',
+  extra:`${flowH(['Request','Application','External interaction','Collaborator','Evidence'])}
+   <div class="callout"><b>Limitation:</b> An external callback alone establishes that input reached a server-side request. Impact (internal access, data read, RCE) requires further, careful, authorized validation.</div>`}) },
+ {id:'t-projset',t:'Project Settings',b:'Per-project configuration & saved state',build:o=>toolFull({
+  what:'Project Settings store scope, session-handling rules, macros, and saved state for a specific engagement (Pro saves to a project file).',
+  why:'Consistent scope and session handling keep long tests reproducible and in-bounds.',
+  when:['Start of each engagement','Complex auth needing macros/session rules'],
+  input:'Scope, session-handling rules, macros.',
+  output:'Persistent project configuration and state.',
+  workflow:['Create project','Define scope','Configure session handling','Save state periodically'],
+  vulns:['Supports all — reliability &amp; scope control'],
+  vuln:'N/A.',secure:'N/A.',
+  validation:'Correct session handling ensures tools stay authenticated, so results are trustworthy.',
+  evidence:'N/A.',reporting:'N/A.',extra:''}) },
+ {id:'t-userset',t:'User Settings',b:'Cross-project preferences',build:o=>toolFull({
+  what:'User Settings apply across all projects: hotkeys, display, connections, and default behaviors.',
+  why:'Efficient, consistent tooling across engagements.',
+  when:['One-time setup and ongoing tuning'],
+  input:'Preferences.',output:'Applied globally.',
+  workflow:['Set hotkeys','Configure display/connections','Tune defaults'],
+  vulns:['Supports all — efficiency'],
+  vuln:'N/A.',secure:'N/A.',validation:'N/A.',evidence:'N/A.',reporting:'N/A.',extra:''}) }
+]; /*END_TOOLS*/
+
+/* Workflows (visual) */
+const WORKFLOWS=[
+ {id:'w-recon',t:'Reconnaissance',b:'Confirm scope and discover surface',body:()=>`
+  ${flow(['Confirm written authorization &amp; scope','Enumerate domains &amp; subdomains','Identify tech stack &amp; entry points','Configure Burp + trust CA','Begin passive mapping'])}
+  <div class="callout crit">Never begin without explicit, written authorization and an agreed scope.</div>`},
+ {id:'w-mapping',t:'Application Mapping',b:'Build the site map',body:()=>`
+  ${flow(['Set scope in Target','Browse every feature manually','Trigger all roles/states','Import OpenAPI where available','Review site map for gaps','Flag high-value functions'])}`},
+ {id:'w-attacksurface',t:'Attack Surface Identification',b:'Where to focus',body:()=>`
+  <p class="lead">Rank endpoints by trust boundary and sensitivity.</p>
+  <ul><li>Anything with an object ID → access-control testing</li><li>Anything server-side-fetching a URL → SSRF</li><li>Anything taking user input into a query/template/command → injection</li><li>Anything changing state → business logic &amp; race conditions</li></ul>`},
+ {id:'w-authn',t:'Authentication Testing',b:'Login, reset, MFA, recovery',body:()=>`
+  ${flow(['Login','Capture request','Identify auth mechanism','Session/token analysis','Test failure handling (lockout, enumeration)','Test session management','Test password reset','Test MFA','Test account recovery','Test authorization'])}
+  <h4>Checklist</h4>${miniChecklist('wauthn',['New session issued on login','Credentials only over HTTPS','No username enumeration via errors/timing','Lockout / rate limiting on login','Session invalidated on logout &amp; password change','Reset token single-use &amp; expiring','MFA cannot be skipped or replayed','Recovery flow can\'t be abused to take over'])}`},
+ {id:'w-session',t:'Session Testing',b:'Creation, use, expiry, invalidation',body:()=>`
+  ${flow(['Capture pre-auth &amp; post-auth state','Check token issued at login','Sequencer entropy check','Test idle/absolute expiry','Test logout invalidation','Test fixation'])}`},
+ {id:'w-authz',t:'Authorization Testing',b:'Horizontal & vertical access',body:()=>`
+  ${flow(['Establish two authorized accounts (A, B)','Capture A\'s request to a resource','Replay as B (swap session)','Change object ID to A\'s','Compare responses (Comparer)','Determine authorization outcome','Repeat for vertical (user→admin) functions'])}
+  <p>See the dedicated <a onclick="go('w-idor')">IDOR/BOLA Master Workflow</a>.</p>`},
+ {id:'w-input',t:'Input Validation',b:'Injection surface testing',body:()=>`
+  ${flow(['Identify every input reaching a query/template/command','Establish baseline response','Inject one controlled probe','Observe error/timing/reflection','Confirm in Repeater','Assess real impact'])}`},
+ {id:'w-idor',t:'IDOR / BOLA Master Workflow',b:'The canonical access-control test',body:()=>`
+  ${flow(['User A (authorized)','Capture request','Identify object identifier','Establish baseline','Authenticate as User B','Replay request','Change identifier to A\'s object','Compare response','Determine authorization','Validate access','Document evidence'])}
+  <h4>Identifier types to test</h4><div class="chips">${['Numeric IDs','UUIDs','Account IDs','Order IDs','Document IDs','File IDs','API resource IDs'].map(x=>`<span class="badge b-tag">${x}</span>`).join('')}</div>
+  <div class="grid g2"><div class="card"><h4>Horizontal</h4><p>Same privilege level — can User B read/modify User A's objects?</p></div>
+  <div class="card"><h4>Vertical</h4><p>Different privilege level — can a normal user reach admin functions/objects?</p></div></div>
+  <div class="callout">UUIDs reduce guessability but do <b>not</b> provide authorization. If you can obtain another user's UUID (from responses, referrers, logs) and the server serves it, it's still IDOR.</div>`},
+ {id:'w-api',t:'API VAPT Workflow',b:'REST, GraphQL, WebSocket',body:()=>`
+  ${flow(['Swagger / OpenAPI','Identify endpoints','Configure Burp','Capture requests','Build endpoint inventory','Authentication testing','Authorization testing','Parameter testing','Input validation','Rate limiting','Mass assignment','Data exposure','Business logic','GraphQL / WebSocket','Evidence','Reporting'])}
+  <div class="grid g3"><div class="card"><h4>REST</h4><p>Object IDs in path → BOLA. Methods per endpoint → BFLA. Response fields → excessive exposure.</p></div>
+  <div class="card"><h4>GraphQL</h4><p>Introspection, per-field authz, query depth/batching. See <a onclick="go('w-graphql')">GraphQL</a>.</p></div>
+  <div class="card"><h4>WebSocket</h4><p>Message-level authz, input validation, origin. See <a onclick="go('w-websocket')">WebSocket</a>.</p></div></div>`},
+ {id:'w-jwt',t:'JWT Testing',b:'Inspect claims and validation',body:()=>`
+  <p class="lead">Decode → reason → test how the server validates.</p>
+  ${flow(['Capture token','Decode header &amp; payload (Decoder)','Inspect alg, exp, iss, aud, sub, role','Attempt controlled modification (test env)','Resend','Observe server acceptance','Only server acceptance = finding'])}
+  <div class="callout">Token manipulation is not automatically exploitable. A tampered token is only a finding if the server <b>accepts</b> it. Always confirm server-side.</div>`},
+ {id:'w-oauth',t:'OAuth 2.0 Testing',b:'Flow and redirect handling',body:()=>`
+  ${flow(['Map the OAuth flow','Inspect redirect_uri validation','Test state parameter (CSRF)','Check token leakage (referrer, logs)','Assess scope handling'])}`},
+ {id:'w-cors',t:'CORS Testing',b:'Cross-origin data exposure',body:()=>`
+  ${flow(['Identify credentialed, sensitive endpoints','Send request with a foreign Origin','Inspect Access-Control-Allow-Origin/-Credentials','Test whether arbitrary origins are reflected','Confirm a real cross-origin read is possible'])}
+  <div class="callout">A permissive CORS header is unsafe <i>config</i>. It's only a real finding when a malicious origin can actually read sensitive, credentialed data.</div>`},
+ {id:'w-ssrf',t:'SSRF Testing',b:'Server-side request forgery',body:()=>`
+  <h4>Discovery — look for</h4><div class="chips">${['URL parameters','Webhooks','Import URLs','Image URLs','PDF generators','URL previews','Callback URLs','External integrations'].map(x=>`<span class="badge b-tag">${x}</span>`).join('')}</div>
+  ${flow(['Baseline with a benign external URL','Substitute Collaborator URL','Observe response &amp; out-of-band callback','Determine reachability (internal ranges/metadata)','Determine impact','Document'])}
+  <div class="callout crit">Test only authorized targets. Do not pivot into third-party or production infrastructure. A callback proves SSRF exists; impact needs careful, in-scope validation.</div>`},
+ {id:'w-fileupload',t:'File Upload Testing',b:'Validation and execution',body:()=>`
+  ${flow(['Upload a benign baseline file','Vary Content-Type','Vary extension &amp; double extensions','Test filename handling / path traversal','Locate stored file &amp; access it','Determine if it executes or is served unsafely'])}
+  <div class="callout">Changing only the Content-Type header proves nothing by itself. A finding requires demonstrating unsafe storage, execution, or retrieval.</div>`},
+ {id:'w-bizlogic',t:'Business Logic Testing',b:'Abuse of intended functionality',body:()=>`
+  <p class="lead">Ask what the app assumes about how it's used, then break the assumption. Repeater + Comparer are your tools.</p>
+  <ul><li>Can a step be skipped?</li><li>Can requests be reordered?</li><li>Can a request be replayed?</li><li>Can values be modified (price, qty, negative numbers)?</li><li>Can another user's object be supplied?</li><li>Can state transitions be bypassed?</li><li>Can an expired action be reused?</li></ul>`},
+ {id:'w-clientside',t:'Client-Side Testing',b:'XSS, DOM, CORS, redirects',body:()=>`
+  ${flow(['Map all reflected/stored inputs','Identify sink context (HTML/JS/attr/URL)','Inject context-appropriate probe','Confirm execution or DOM sink','Assess impact (session, actions)'])}`},
+ {id:'w-secheaders',t:'Security Headers',b:'Defense-in-depth verification',body:()=>`
+  ${flow(['Capture representative responses','Check HSTS, CSP, X-Content-Type-Options, frame controls','Check Set-Cookie flags','Map each gap to a reachable weakness','Rate severity by real exposure'])}`},
+ {id:'w-config',t:'Configuration Testing',b:'Misconfig and exposure',body:()=>`
+  <ul><li>Allowed HTTP methods (TRACE/PUT/DELETE)</li><li>Verbose errors / stack traces</li><li>Debug endpoints, directory listing</li><li>Default creds / exposed admin panels</li></ul>`},
+ {id:'w-errors',t:'Error Handling',b:'What errors reveal',body:()=>`
+  <p>Trigger errors deliberately and read them: stack traces, DB errors, internal paths, framework versions. Each is an <b>indicator</b> of information disclosure whose severity depends on what's revealed.</p>`},
+ {id:'w-infodisc',t:'Information Disclosure',b:'Leaked data and metadata',body:()=>`
+  <ul><li>Comments, source maps, backup files (.bak, ~)</li><li>Verbose errors, debug output</li><li>Sensitive data in API responses (excessive exposure)</li><li>Tokens/keys in JS or history</li></ul>`},
+ {id:'w-race',t:'Race Conditions',b:'Concurrency abuse',body:()=>`
+  ${flow(['Identify a state-changing, limited action','Establish baseline single-request behavior','Send many concurrent requests (single-packet where possible)','Compare outcomes to the limit','Confirm business impact (e.g. double-spend)'])}
+  <div class="callout">Burp can issue tightly-timed concurrent requests. A race is only a finding when concurrency produces a security/business impact the sequential flow prevents.</div>`},
+ {id:'w-websocket',t:'WebSocket Testing',b:'Message-level testing',body:()=>`
+  ${flow(['Connect','Observe messages','Identify message structure','Modify message','Replay','Test authorization','Test input validation','Test origin controls','Test business logic'])}
+  <h4>Common targets</h4><div class="chips">${['Chat','Notifications','Trading','Real-time dashboards','Collaboration'].map(x=>`<span class="badge b-tag">${x}</span>`).join('')}</div>`},
+ {id:'w-graphql',t:'GraphQL Testing',b:'Introspection and per-field authz',body:()=>`
+  ${flow(['Send introspection query','Map types, queries, mutations','Test each mutation\'s authorization','Test field-level authorization','Probe nested/aliased queries (depth/DoS)','Test batching','Read error verbosity'])}
+  <div class="callout">The single endpoint hides many operations. Authorization must be checked <b>per field/operation</b>, not just at the endpoint.</div>`}
+]; /*END_WORKFLOWS*/
+
+/* Vulnerabilities — full 18-point template */
+function vulnFull(o){return `
+ <div class="tag-row">${sevBadge(o.sevHint||'info')} <span class="badge b-tag">${o.owasp}</span> <span class="badge b-tag">${o.cwe}</span> ${o.tools.map(toolBadge).join(' ')}</div>
+ <h4>1. Definition</h4><p>${o.def}</p>
+ <h4>2. Why it matters</h4><p>${o.matters}</p>
+ <h4>3. Where to look</h4><p>${o.where}</p>
+ <h4>4. Burp tool</h4><p>${o.tool}</p>
+ <h4>5. Starting request</h4>${o.start?httpReq(o.start):`<p>${o.startText||''}</p>`}
+ <h4>6. Establish baseline</h4><p>${o.baseline}</p>
+ <h4>7. Testing approach</h4>${Array.isArray(o.approach)?flow(o.approach):`<p>${o.approach}</p>`}
+ <h4>8. What to modify</h4><p>${o.modify}</p>
+ <div class="grid g2"><div class="card"><h4>9. Vulnerable behavior</h4><p>${o.vuln}</p></div><div class="card"><h4>10. Secure behavior</h4><p>${o.secure}</p></div></div>
+ <h4>11. Validation</h4><p>${o.validation}</p>
+ <h4>12. Common false positives</h4><ul>${o.fp.map(x=>`<li>${x}</li>`).join('')}</ul>
+ <h4>13. Impact</h4><p>${o.impact}</p>
+ <h4>14. Evidence</h4><p>${o.evidence}</p>
+ <h4>15. CWE</h4><p>${o.cweNote}</p>
+ <h4>16. OWASP</h4><p>${o.owaspNote}</p>
+ <h4>17. CVSS considerations</h4><p class="muted">Do not assign a score from the name. Reason through each metric for the verified scenario:</p>
+  <div class="kv"><div class="k">Attack Vector</div><div class="v">${o.cvss.av}</div><div class="k">Attack Complexity</div><div class="v">${o.cvss.ac}</div><div class="k">Privileges Required</div><div class="v">${o.cvss.pr}</div><div class="k">User Interaction</div><div class="v">${o.cvss.ui}</div><div class="k">Scope</div><div class="v">${o.cvss.s}</div><div class="k">C / I / A</div><div class="v">${o.cvss.cia}</div></div>
+ <h4>18. Remediation</h4><p>${o.remediation}</p>`}
+
+const VULNS=[
+ {id:'v-sqli',t:'SQL Injection',cat:'Injection',srv:'Server-Side',diff:'Intermediate',sevHint:'high',owasp:'A03 Injection',cwe:'CWE-89',tools:['Repeater','Intruder','Collaborator'],
+  matrix:{where:'Any param reaching a SQL query',change:'Inject quote / boolean / time payloads',ind:'DB error, boolean/time-based response change'},
+  def:'User input is incorporated into a SQL query without proper parameterization, allowing the input to alter query logic.',
+  matters:'Can lead to data theft, authentication bypass, data modification, and sometimes full server compromise.',
+  where:'Login forms, search, filters, sort params, IDs, any field used in a WHERE/ORDER BY/INSERT.',
+  tool:'Repeater for controlled manual probes; Intruder to test many inputs; Collaborator for blind out-of-band confirmation.',
+  start:`GET /search?q=laptop HTTP/1.1
+Host: shop.example.test`,
+  baseline:'Record the normal response for a valid value (status, length, timing, result count).',
+  approach:['Send a single quote (\') and observe','Test boolean pair: value+AND+1=1 vs +AND+1=2','Test time-based delay payload','Confirm consistent, controllable difference'],
+  modify:'The vulnerable parameter only — inject one probe at a time (quote, boolean, time, UNION column count).',
+  vuln:'A syntactically breaking character causes a DB error, or boolean/time payloads change the response in a controllable, logic-consistent way.',
+  secure:'Input is treated as data (parameterized queries); errors are generic; no timing/boolean oracle.',
+  validation:'Show a reproducible boolean or time oracle you control, or extract a harmless known value — not just a 500 error.',
+  fp:['A generic 500 from malformed input','WAF blocking that merely changes the response','Timing noise from network jitter','Reflected input mistaken for injection'],
+  impact:'Depends on data reachable, whether it\'s read/write, and stacked-query/RCE potential in the environment.',
+  evidence:'Baseline vs payload request/response pairs; the controllable oracle; any Collaborator interaction for blind cases.',
+  cweNote:'CWE-89 (SQL Injection) is the precise weakness. Avoid the too-generic CWE-20 unless you truly cannot show injection.',
+  owaspNote:'Maps to A03: Injection in OWASP Top 10.',
+  cvss:{av:'Usually Network',ac:'Low if a clear oracle exists; higher if blind/WAF',pr:'Depends if endpoint needs auth',ui:'None',s:'Unchanged unless it enables broader compromise',cia:'Often high C; I/A depend on write/RCE reach'},
+  remediation:'Use parameterized queries / prepared statements or a safe ORM; validate/allowlist where structure varies; least-privilege DB accounts; generic errors.'},
+ {id:'v-idor',t:'IDOR / BOLA',cat:'Access Control',srv:'API',diff:'Beginner',sevHint:'high',owasp:'A01 Broken Access Control',cwe:'CWE-639',tools:['Proxy','Repeater','Comparer'],
+  matrix:{where:'Object IDs in path/params/body',change:'Swap ID to another user\'s object',ind:'Another user\'s data returned/modified'},
+  def:'The app exposes a reference to an internal object (ID) and fails to verify the requester is authorized for that specific object.',
+  matters:'Directly exposes or lets you modify other users\' data — one of the most common high-impact web/API findings.',
+  where:'Anywhere an identifier appears: /users/{id}, ?orderId=, {"docId":...}, file IDs, API resource IDs.',
+  tool:'Proxy to capture, Repeater to replay with swapped identity/ID, Comparer to prove the responses match.',
+  start:`GET /api/v1/orders/1001 HTTP/1.1
+Host: api.example.test
+Authorization: Bearer <USER-A-TOKEN>`,
+  baseline:'As User A, capture the legitimate response for A\'s own object.',
+  approach:['Capture A accessing A\'s object (baseline)','Switch to User B\'s session/token','Request A\'s object ID as B','Compare responses','Confirm B received A\'s data'],
+  modify:'The object identifier and/or the auth identity — keep everything else constant.',
+  vuln:'User B successfully reads or modifies User A\'s object (matching sensitive data, or a successful state change).',
+  secure:'Server returns 403/404 or an empty/scoped result; authorization is enforced per object server-side.',
+  validation:'Prove with two authorized accounts that B obtains A\'s specific data — Comparer showing matching sensitive fields is strong evidence.',
+  fp:['Public/shared resources intended to be accessible','Same data because both accounts legitimately share it','A 200 with an empty/authorized-only body'],
+  impact:'Scales with data sensitivity and whether it\'s read vs write, and how many objects are enumerable.',
+  evidence:'Baseline (A→A), attack (B→A) request/response pairs, and a Comparer diff proving cross-account access.',
+  cweNote:'CWE-639 (Authorization Bypass Through User-Controlled Key) fits object-level access. CWE-284/862 are broader alternatives; pick the most specific.',
+  owaspNote:'A01: Broken Access Control (web); API1: BOLA in the OWASP API Top 10.',
+  cvss:{av:'Network',ac:'Low when IDs are guessable/known',pr:'Low (a valid low-priv account)',ui:'None',s:'Unchanged typically',cia:'C high; I high if modification is possible'},
+  remediation:'Enforce per-object authorization server-side on every access; do not rely on unguessable IDs alone; use indirect references scoped to the session where feasible.'},
+ {id:'v-xss-r',t:'Reflected XSS',cat:'Injection',srv:'Client-Side',diff:'Beginner',sevHint:'med',owasp:'A03 Injection',cwe:'CWE-79',tools:['Repeater','Proxy'],
+  matrix:{where:'Params reflected into HTML/JS',change:'Inject context-appropriate payload',ind:'Script executes in the response context'},
+  def:'User input is reflected into a response without proper output encoding, allowing script execution in the victim\'s browser.',
+  matters:'Enables session/action theft, credential capture, and UI manipulation in the victim\'s authenticated context.',
+  where:'Search terms, error messages, any parameter echoed into the page (HTML body, attribute, or JS context).',
+  tool:'Repeater to test payloads per context; Proxy to observe reflection points across the app.',
+  start:`GET /search?q=test HTTP/1.1
+Host: app.example.test`,
+  baseline:'Find where and how your input is reflected (HTML text, attribute, script, URL).',
+  approach:['Locate the reflection','Identify the exact sink context','Inject a context-appropriate probe','Confirm the payload parses as code, not text','Assess what an attacker could do'],
+  modify:'The reflected parameter with a payload matched to the sink context (break out of attribute/tag/JS string as needed).',
+  vuln:'Injected markup/script is interpreted by the browser (e.g. an alert fires, or an injected element/handler runs).',
+  secure:'Output is context-aware encoded; CSP restricts inline script; input is validated.',
+  validation:'Demonstrate script execution in the intended context, ideally showing an action beyond alert(1) that reflects real impact.',
+  fp:['Reflection that is safely HTML-encoded','Payload shown as literal text','Self-XSS requiring the victim to paste attacker payload with no delivery vector'],
+  impact:'Depends on victim privilege, whether it\'s deliverable via URL, and CSP strength.',
+  evidence:'The request with payload and the response showing execution context; a short PoC.',
+  cweNote:'CWE-79 (Improper Neutralization of Input During Web Page Generation) is precise for XSS.',
+  owaspNote:'A03: Injection.',
+  cvss:{av:'Network',ac:'Low–High depending on delivery',pr:'None',ui:'Required (victim opens link)',s:'Often Changed (affects the victim\'s browser context)',cia:'C/I on the victim session'},
+  remediation:'Context-aware output encoding; input validation; a strong CSP; framework auto-escaping; HttpOnly cookies to blunt token theft.'},
+ {id:'v-ssrf',t:'SSRF',cat:'Server-Side',srv:'Server-Side',diff:'Intermediate',sevHint:'high',owasp:'A10 SSRF',cwe:'CWE-918',tools:['Repeater','Collaborator'],
+  matrix:{where:'Params holding a URL the server fetches',change:'Point URL to internal/metadata/Collaborator',ind:'Server-side callback or internal response'},
+  def:'The server fetches a URL supplied by the user, letting an attacker make the server issue requests to unintended destinations.',
+  matters:'Can reach internal services, cloud metadata endpoints, and otherwise-unreachable systems from a trusted position.',
+  where:'Webhooks, import-by-URL, image/PDF fetchers, link previews, callbacks, any "give us a URL" feature.',
+  tool:'Repeater to vary the URL; Collaborator to confirm blind server-side requests.',
+  start:`POST /api/import HTTP/1.1
+Host: app.example.test
+Content-Type: application/json
+
+{"url":"https://example.test/data.json"}`,
+  baseline:'Confirm the server fetches a benign external URL you control and how it responds.',
+  approach:['Baseline benign external URL','Swap in a Collaborator URL','Confirm the out-of-band callback','Carefully test internal reachability (in scope)','Determine what can be read/reached'],
+  modify:'The URL/host value — test schemes, internal ranges, and metadata endpoints only within authorized scope.',
+  vuln:'The server initiates a request to your Collaborator or returns content from an internal resource it shouldn\'t reach.',
+  secure:'Outbound fetches are allowlisted, internal ranges/metadata blocked, and responses not reflected.',
+  validation:'A Collaborator callback proves SSRF exists. Impact (internal data/metadata) must be shown carefully and only within scope.',
+  fp:['A callback from a client-side fetch, not the server','Intended outbound calls to expected third parties','DNS resolution alone without an actual request'],
+  impact:'Ranges from limited outbound to internal service access, metadata credential theft, or pivoting — depends on environment.',
+  evidence:'The triggering request + Collaborator interaction; any internal response obtained in scope.',
+  cweNote:'CWE-918 (SSRF) is precise. Avoid describing it merely as "open redirect" or CWE-20.',
+  owaspNote:'A10: SSRF (its own Top-10 category); API7 in the API list.',
+  cvss:{av:'Network',ac:'Low once a callback works; higher for meaningful impact',pr:'Depends on endpoint auth',ui:'None',s:'Often Changed (crosses into internal trust)',cia:'Depends on what internal resources are reachable'},
+  remediation:'Allowlist destinations; block internal ranges &amp; metadata IPs; disable unneeded URL schemes; do not reflect fetched content; use a dedicated egress proxy.'},
+ {id:'v-jwt',t:'JWT Weaknesses',cat:'Authentication',srv:'API',diff:'Intermediate',sevHint:'high',owasp:'A02 Cryptographic Failures',cwe:'CWE-347',tools:['Decoder','Repeater'],
+  matrix:{where:'Bearer tokens in Authorization',change:'Alter alg/claims and resend',ind:'Server accepts tampered token'},
+  def:'Flaws in how JSON Web Tokens are generated or validated — e.g. weak/None algorithm acceptance, missing signature verification, or unchecked claims.',
+  matters:'A forged or altered token that the server accepts can mean full authentication/authorization bypass.',
+  where:'Authorization: Bearer headers, cookies, and any API using JWTs for identity/role.',
+  tool:'Decoder to read parts; Repeater to submit modified tokens; a JWT extension helps.',
+  start:`GET /api/v1/me HTTP/1.1
+Host: api.example.test
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.<payload>.<sig>`,
+  baseline:'Decode the token; note alg, exp, iss, aud, sub, and role/privilege claims.',
+  approach:['Decode header &amp; payload','Test alg confusion / None (in test env)','Modify a privilege claim','Resend and check server acceptance','Test expiry &amp; replay handling'],
+  modify:'Algorithm field, signature, and claims — always against systems you\'re authorized to test.',
+  vuln:'The server accepts a token with an altered signature/alg or elevated claims (e.g. role=admin) as valid.',
+  secure:'Signature verified with the correct algorithm/key; None rejected; exp/iss/aud enforced; claims re-checked server-side.',
+  validation:'Only server-side acceptance of the tampered token is a finding. A decodable/editable token you produce is not, by itself, exploitable.',
+  fp:['Decoding the token (it\'s base64, not "cracked")','Editing a token locally without server acceptance','Readable claims that the server independently re-validates'],
+  impact:'Can be critical (auth/authz bypass) if forgery is accepted; negligible if validation is sound.',
+  evidence:'The tampered token, the request, and the authenticated/authorized response proving acceptance.',
+  cweNote:'CWE-347 (Improper Verification of Cryptographic Signature) fits validation failures; CWE-345 for broader authenticity issues.',
+  owaspNote:'A02: Cryptographic Failures, or A07: Identification &amp; Authentication Failures depending on the specific flaw.',
+  cvss:{av:'Network',ac:'Low if None/weak-key accepted',pr:'None–Low',ui:'None',s:'Possibly Changed',cia:'High C/I if identity/role bypass'},
+  remediation:'Enforce a fixed strong algorithm and key; reject None; verify signature before trusting claims; validate exp/iss/aud; re-check authorization server-side.'},
+ {id:'v-cors',t:'CORS Misconfiguration',cat:'Client-Side',srv:'Client-Side',diff:'Intermediate',sevHint:'med',owasp:'A05 Security Misconfiguration',cwe:'CWE-942',tools:['Repeater','Proxy'],
+  matrix:{where:'Endpoints returning ACAO/ACAC',change:'Send a foreign/attacker Origin',ind:'ACAO reflects origin + credentials true'},
+  def:'The server\'s cross-origin response policy is overly permissive, potentially letting a malicious site read authenticated responses.',
+  matters:'Can expose authenticated user data to an attacker-controlled origin.',
+  where:'APIs and endpoints returning Access-Control-Allow-Origin, especially with Allow-Credentials.',
+  tool:'Repeater to vary the Origin header; Proxy to observe ACAO/ACAC on responses.',
+  start:`GET /api/v1/account HTTP/1.1
+Host: api.example.test
+Origin: https://evil.example
+Cookie: session=<TEST-SESSION>`,
+  baseline:'Note the normal CORS headers for a same-origin request.',
+  approach:['Send a foreign Origin','Check if ACAO reflects it','Check Allow-Credentials: true','Confirm the endpoint returns sensitive data','Assess a real cross-origin read'],
+  modify:'The Origin header only.',
+  vuln:'ACAO reflects an arbitrary origin (or is *) together with Allow-Credentials: true on an endpoint returning sensitive, credentialed data.',
+  secure:'Origins are strictly allowlisted; credentials not combined with wildcard/reflected origins.',
+  validation:'Distinguish "permissive config" from "exploitable": the endpoint must return sensitive credentialed data readable by the foreign origin.',
+  fp:['ACAO on public, non-sensitive endpoints','Wildcard ACAO without credentials on public data','Reflected origin but no credentials and no sensitive data'],
+  impact:'Depends entirely on the sensitivity of data the misconfigured endpoint returns to authenticated users.',
+  evidence:'Request with foreign Origin and the response headers/body proving a readable cross-origin sensitive response.',
+  cweNote:'CWE-942 (Permissive Cross-domain Policy) is precise; avoid overstating as CSRF.',
+  owaspNote:'A05: Security Misconfiguration.',
+  cvss:{av:'Network',ac:'Requires a victim on an attacker page (some complexity)',pr:'None',ui:'Required',s:'Possibly Changed',cia:'C on exposed data'},
+  remediation:'Strict origin allowlist; never combine credentials with wildcard/reflected origins; validate Origin server-side.'},
+ {id:'v-bizlogic',t:'Business Logic Abuse',cat:'Business Logic',srv:'Business Logic',diff:'Advanced',sevHint:'med',owasp:'A04 Insecure Design',cwe:'CWE-840',tools:['Repeater','Comparer'],
+  matrix:{where:'Multi-step / value-bearing flows',change:'Skip/reorder/replay/modify values',ind:'App accepts an invalid business state'},
+  def:'The application permits sequences or values that violate intended business rules, even though each request is individually well-formed.',
+  matters:'Can enable fraud, free goods, privilege gains, or workflow bypasses that scanners never detect.',
+  where:'Checkout, coupons, quantity/price fields, multi-step wizards, state transitions, limited actions.',
+  tool:'Repeater to replay/modify/reorder; Comparer to spot state differences.',
+  startText:'Capture the requests for each step of the target workflow (e.g. add-to-cart → apply-coupon → checkout).',
+  baseline:'Understand the intended happy-path sequence and the values the server expects.',
+  approach:['Map the intended flow','Try skipping a step','Try replaying a one-time action','Modify values (price, qty, negative)','Supply another user\'s object','Compare resulting state'],
+  modify:'Sequence, repetition, or business values — one deviation at a time.',
+  vuln:'The server accepts an invalid state (negative quantity credited, skipped payment, reused coupon, bypassed approval).',
+  secure:'Server enforces invariants and state-machine rules independent of client-supplied order/values.',
+  validation:'Show that the deviation yields a concrete, unintended business outcome — not merely a tolerated-but-harmless request.',
+  fp:['A deviation the app harmlessly ignores','Client-side-only checks that the server actually re-validates','Expected behavior misread as abuse'],
+  impact:'Highly context-dependent; measured by financial/operational effect of the abused rule.',
+  evidence:'The sequence of requests and the resulting state (order total, balance, granted access).',
+  cweNote:'CWE-840 (Business Logic Errors) or a more specific child; often pairs with CWE-841 (improper enforcement of workflow).',
+  owaspNote:'A04: Insecure Design.',
+  cvss:{av:'Network',ac:'Varies with flow complexity',pr:'Low (a user account)',ui:'None',s:'Varies',cia:'Usually Integrity; sometimes Confidentiality'},
+  remediation:'Enforce business invariants and state machines server-side; make one-time actions idempotent/single-use; validate value ranges; re-authorize each sensitive step.'}
+]; /*END_VULNS*/
+
+/* OWASP matrix */
+const OWASP=[
+ {c:'A01 Broken Access Control',v:'IDOR/BOLA, BFLA, privilege escalation, forced browsing',tool:'Proxy + Repeater + Comparer',loc:'Object IDs, admin functions, method-level',test:'Swap identity/ID; access higher-priv functions',ev:'Two-account request/response pairs + diff'},
+ {c:'A02 Cryptographic Failures',v:'Weak JWT, sensitive data in transit, weak tokens',tool:'Decoder + Sequencer + Repeater',loc:'Tokens, cookies, TLS config',test:'Decode &amp; test validation; entropy analysis',ev:'Token analysis + server acceptance proof'},
+ {c:'A03 Injection',v:'SQLi, NoSQLi, command, LDAP, XPath, SSTI, XSS',tool:'Repeater + Intruder + Collaborator',loc:'Any input into query/template/command',test:'Controlled probe; boolean/time/OOB oracle',ev:'Baseline vs payload + controllable oracle'},
+ {c:'A04 Insecure Design',v:'Business logic, missing controls by design',tool:'Repeater + Comparer',loc:'Multi-step flows, value fields',test:'Skip/reorder/replay/modify',ev:'Sequence + resulting invalid state'},
+ {c:'A05 Security Misconfiguration',v:'CORS, headers, verbose errors, debug endpoints, methods',tool:'Proxy + Repeater',loc:'Response headers, error pages, methods',test:'Vary Origin/method; trigger errors',ev:'Response headers/errors + reachable weakness'},
+ {c:'A06 Vulnerable & Outdated Components',v:'Known-CVE components',tool:'Proxy + Scanner (as leads)',loc:'Version banners, JS libs, framework fingerprints',test:'Identify version; map to known issues',ev:'Version evidence + confirmed reachable issue'},
+ {c:'A07 Identification & Auth Failures',v:'Auth bypass, weak session, enumeration, MFA gaps',tool:'Proxy + Repeater + Intruder + Sequencer',loc:'Login, reset, MFA, session',test:'Failure handling, session lifecycle',ev:'Reproducible bypass/enumeration'},
+ {c:'A08 Software & Data Integrity Failures',v:'Insecure deserialization, unsigned updates',tool:'Repeater + Collaborator',loc:'Serialized blobs, update mechanisms',test:'Tamper serialized data (test env)',ev:'Server processing of tampered payload'},
+ {c:'A09 Logging & Monitoring Failures',v:'Insufficient logging/alerting',tool:'Observation + Collaborator',loc:'Auth events, admin actions',test:'Assess detectability of attacks',ev:'Absence of expected response to abuse'},
+ {c:'A10 SSRF',v:'Server-side request forgery',tool:'Repeater + Collaborator',loc:'URL params, webhooks, fetchers',test:'Point URL internal/OOB',ev:'Callback + internal reachability (in scope)'}
+];
+
+/* Decision engine map */
+const DECISION={
+ 'Authentication':'Proxy + Repeater (capture the login flow, test failure handling and session issuance)',
+ 'Authorization':'Proxy + Repeater + Comparer (swap identity/ID, diff responses across accounts)',
+ 'Input validation':'Repeater (single controlled probes) then Intruder (breadth) + Collaborator (blind/OOB)',
+ 'API':'Proxy + Repeater (per-endpoint), Comparer for authz, Intruder for enumeration',
+ 'Session':'Proxy + Sequencer (entropy) + Repeater (lifecycle/fixation)',
+ 'SSRF':'Repeater + Collaborator (out-of-band confirmation)',
+ 'XSS':'Repeater + Proxy (find reflection/sink, test context-appropriate payloads)',
+ 'SQL Injection':'Repeater (manual oracle) + Intruder (payload sets) + Collaborator (blind)',
+ 'File upload':'Repeater + Proxy (vary type/extension, locate &amp; retrieve stored file)',
+ 'Business logic':'Repeater + Comparer (skip/reorder/replay/modify, diff state)',
+ 'Token':'Sequencer (randomness) + Decoder (structure) + Repeater (acceptance)',
+ 'Race condition':'Repeater (grouped/parallel concurrent requests) + Comparer',
+ 'WebSocket':'Proxy WebSocket History + Repeater-style message replay',
+ 'GraphQL':'Repeater (introspection, per-field authz, depth/batching)'
+};
+
+/* Labs */
+const LABS=[
+ {id:'lab-idor',t:'LAB 1 — IDOR',diff:'Beginner',body:()=>labBody({
+  scenario:'Two authorized test accounts exist (userA, userB) on a fictional test shop at shop.test. Each can view their own orders at /api/orders/{id}.',
+  goal:'Determine whether userB can access userA\'s order object.',
+  start:`GET /api/orders/1001 HTTP/1.1
+Host: shop.test
+Authorization: Bearer <USERB-TEST-TOKEN>`,
+  observe:'Status code and whether the body contains userA\'s order details (name, address, items).',
+  modify:'Use userB\'s token but request userA\'s order ID (1001).',
+  secure:'403/404 or an empty/scoped response — the server checks object ownership.',
+  vuln:'200 with userA\'s order data returned to userB.',
+  valid:'Confirm with the two accounts and a Comparer diff that the sensitive fields match userA\'s legitimate response.'})},
+ {id:'lab-sqli',t:'LAB 2 — SQL Injection',diff:'Intermediate',body:()=>labBody({
+  scenario:'A fictional search endpoint /search?q= on app.test in an authorized lab.',
+  goal:'Establish whether the q parameter is injectable.',
+  start:`GET /search?q=phone HTTP/1.1
+Host: app.test`,
+  observe:'Errors, and whether boolean/time payloads change results in a controllable way.',
+  modify:'q with a single quote, then a boolean pair (…AND 1=1 vs …AND 1=2), then a time-based probe.',
+  secure:'Identical handling; generic errors; no boolean/time oracle.',
+  vuln:'A controllable boolean or time difference tied to your payload.',
+  valid:'Reproduce the oracle repeatedly; a lone 500 is not sufficient.'})},
+ {id:'lab-authn',t:'LAB 3 — Authentication',diff:'Beginner',body:()=>labBody({
+  scenario:'A login form at /login on auth.test with test creds provided by the lab.',
+  goal:'Assess failure handling and session issuance.',
+  start:`POST /login HTTP/1.1
+Host: auth.test
+Content-Type: application/x-www-form-urlencoded
+
+username=test&password=wrong`,
+  observe:'Error text (does it reveal valid usernames?), lockout after repeats, and whether a new session is issued on success.',
+  modify:'Username/password combinations; repeat to test lockout.',
+  secure:'Generic errors, rate limiting/lockout, fresh session at login.',
+  vuln:'Username enumeration via distinct errors/timing, or no lockout.',
+  valid:'Show reproducible enumeration or absence of lockout across many attempts.'})},
+ {id:'lab-ssrf',t:'LAB 4 — SSRF',diff:'Intermediate',body:()=>labBody({
+  scenario:'A fictional URL-import feature /api/import on app.test in an authorized lab, with Collaborator available.',
+  goal:'Confirm the server fetches attacker-supplied URLs.',
+  start:`POST /api/import HTTP/1.1
+Host: app.test
+Content-Type: application/json
+
+{"url":"https://<collaborator>"}`,
+  observe:'A Collaborator DNS/HTTP interaction correlated to your request.',
+  modify:'The url value → your Collaborator payload (stay strictly in lab scope).',
+  secure:'No callback; input not used for server-side fetch, or destination allowlisted.',
+  vuln:'A server-side callback to your Collaborator.',
+  valid:'The interaction proves SSRF exists; assess internal reachability only within the lab.'})},
+ {id:'lab-jwt',t:'LAB 5 — JWT',diff:'Intermediate',body:()=>labBody({
+  scenario:'An API at api.test issuing HS256 JWTs with a role claim, in an authorized lab.',
+  goal:'Test whether tampered tokens are accepted.',
+  start:`GET /api/admin HTTP/1.1
+Host: api.test
+Authorization: Bearer <role=user token>`,
+  observe:'Whether a modified role or altered alg/signature is accepted server-side.',
+  modify:'Claims and algorithm (test env only), then resend.',
+  secure:'Signature/alg strictly verified; None rejected; claims re-checked.',
+  vuln:'Server accepts the tampered token and grants elevated access.',
+  valid:'Only server acceptance counts — decoding/editing locally is not a finding.'})}
+]; /*END_LABS*/
+
+/* Workflow cards */
+const CARDS=[
+ {t:'I found an API endpoint. What next?',s:['Send to Repeater','Establish baseline','Identify parameters','Test authentication','Test authorization','Test input validation','Test rate limiting','Test business logic','Compare responses','Document findings']},
+ {t:'Login endpoint',s:['Capture request','Identify mechanism','Test error/lockout','Check session issuance','Test reset/MFA','Test session lifecycle']},
+ {t:'File upload',s:['Upload benign baseline','Vary Content-Type','Vary extension','Test filename/traversal','Locate stored file','Check execution/serving']},
+ {t:'Object ID',s:['Capture owner request','Note ID type','Swap to another account','Change ID','Compare responses','Confirm access control']},
+ {t:'JWT',s:['Decode token','Inspect alg/claims','Test tampering (test env)','Resend','Check server acceptance']},
+ {t:'SSRF candidate (URL param)',s:['Baseline benign URL','Insert Collaborator payload','Confirm callback','Assess internal reach (in scope)','Determine impact']},
+ {t:'Export / download endpoint',s:['Capture request','Check object scoping','Swap identity/ID','Look for excessive data','Confirm authorization']},
+ {t:'GraphQL',s:['Introspect schema','Enumerate mutations','Test per-field authz','Probe depth/batching','Read error verbosity']},
+ {t:'WebSocket',s:['Observe messages','Identify structure','Modify &amp; replay','Test message authz','Test origin/input validation']}
+];
+
+/* Cheat sheet */
+const CHEAT=[
+ ['Proxy','Capture / intercept traffic'],['Target','Map application &amp; set scope'],['Repeater','Manually modify and replay'],['Intruder','Controlled payload testing'],['Scanner','Automated discovery (validate manually)'],['Sequencer','Token randomness'],['Decoder','Transform / decode data'],['Comparer','Diff requests / responses'],['Collaborator','Out-of-band interaction'],['Extensions','Extend Burp functionality']
+];
+
+/* Mindset questions */
+const MINDSET=['What does this endpoint do?','Who is supposed to access it?','What if I change the identity?','What if I change the object ID?','What if I remove authentication?','What if I change the HTTP method?','What if I modify the parameter?','What if I replay the request?','What if I send unexpected input?','What if I change the sequence?','What if I send the request twice?','What if I change the role?','What if I manipulate state?','What sensitive information is returned?','What trust boundary exists?','What server-side action happens?','What security control should prevent this?','Can I demonstrate that control being bypassed?'];
+
+/* ============ NAV STRUCTURE ============ */
+const NAV=[
+ {g:'Overview',items:[{id:'dashboard',t:'Progress Dashboard'},{id:'mindset',t:'Master Burp Mindset'},{id:'masterflow',t:'Final Master Workflow'},{id:'coremodel',t:'Baseline→Modify→Compare→Validate'}]},
+ {g:'Foundation',items:FOUNDATION.map(x=>({id:x.id,t:x.t}))},
+ {g:'Burp Tools',items:TOOLS.map(x=>({id:x.id,t:x.t}))},
+ {g:'VAPT Workflows',items:WORKFLOWS.map(x=>({id:x.id,t:x.t}))},
+ {g:'Vulnerabilities',items:[{id:'matrix',t:'Vulnerability Master Matrix'},...VULNS.map(x=>({id:x.id,t:x.t})),{id:'falsepos',t:'False Positive Training'}]},
+ {g:'Mapping & Severity',items:[{id:'owaspmatrix',t:'OWASP Testing Matrix'},{id:'cwe',t:'CWE Mapping Guidance'},{id:'cvss',t:'CVSS Guidance'}]},
+ {g:'Interactive',items:[{id:'decision',t:'Which Burp Tool?'},{id:'reqbuilder',t:'Request Inspector'},{id:'validation',t:'Finding Validation Engine'},{id:'lookat',t:'What Should I Look At?'}]},
+ {g:'Reporting',items:[{id:'report',t:'VAPT Report Builder'}]},
+ {g:'Learning',items:[{id:'paths',t:'Learning Paths & Plans'},{id:'labs',t:'Practical Labs'},{id:'cards',t:'Burp Workflow Cards'},{id:'cheat',t:'Burp Cheat Sheet'},{id:'checklist',t:'Master VAPT Checklist'}]},
+ {g:'Personal',items:[{id:'bookmarks',t:'My Bookmarks'},{id:'notes',t:'My Notes'}]}
+];
+const ALLITEMS=NAV.flatMap(g=>g.items.map(i=>({...i,g:g.g})));
+const TOTAL=ALLITEMS.filter(i=>!['dashboard','bookmarks','notes'].includes(i.id)).length;
+
+/* ============ HELPERS ============ */
+function flow(steps){let h='<div class="flow">';steps.forEach((s,i)=>{h+=`<div class="step">${s}</div>`;if(i<steps.length-1)h+='<div class="arw">↓</div>'});return h+'</div>'}
+function flowH(steps){let h='<div class="flow h">';steps.forEach((s,i)=>{h+=`<div class="step">${s}</div>`;if(i<steps.length-1)h+='<div class="arw">→</div>'});return h+'</div>'}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function httpReq(txt){const id='c'+Math.random().toString(36).slice(2,8);const html=esc(txt).replace(/^([A-Z]+ )/,'<span class="k">$1</span>').replace(/\n([A-Za-z-]+):/g,'\n<span class="h">$1</span>:');return `<pre id="${id}"><button class="copy no-print" onclick="cp('${id}')">Copy</button>${html}</pre>`}
+function cp(id){const el=document.getElementById(id);const t=el.innerText.replace(/^Copy/,'');navigator.clipboard&&navigator.clipboard.writeText(t.trim());const b=el.querySelector('.copy');if(b){b.textContent='Copied';setTimeout(()=>b.textContent='Copy',1200)}}
+function miniChecklist(ns,items){return '<div class="card" style="padding:6px 14px">'+items.map((x,i)=>{const id=ns+'-'+i;const c=checks[id]?'checked':'';return `<div class="chk ${c}"><input type="checkbox" ${checks[id]?'checked':''} onchange="toggleCheck('${id}');this.closest('.chk').classList.toggle('checked')"><label>${x}</label></div>`}).join('')+'</div>'}
+function labBody(o){return `
+ <div class="callout crit no-print">Use only clearly fictional / authorized lab environments. Never test systems you are not authorized to assess.</div>
+ <div class="kv"><div class="k">Scenario</div><div class="v">${o.scenario}</div><div class="k">Goal</div><div class="v">${o.goal}</div></div>
+ <h4>Starting request</h4>${httpReq(o.start)}
+ <h4>What to modify</h4><p>${o.modify}</p>
+ <h4>What to observe</h4><p>${o.observe}</p>
+ <div class="grid g2"><div class="card"><h4>Expected secure behavior</h4><p>${o.secure}</p></div><div class="card"><h4>Expected vulnerable behavior</h4><p>${o.vuln}</p></div></div>
+ <h4>Validation criteria</h4><p>${o.valid}</p>`}
+
+/* ============ RENDER NAV ============ */
+function renderNav(){const nav=document.getElementById('nav');nav.innerHTML=NAV.map(g=>`<div class="navgroup"><div class="gt">${g.g}</div>${g.items.map(i=>`<div class="navitem ${current===i.id?'active':''} ${progress[i.id]?'done':''}" onclick="go('${i.id}')"><span class="dot"></span>${i.t}</div>`).join('')}</div>`).join('')}
+
+/* ============ PAGE HEADER (crumb, title, bookmark, done, note) ============ */
+function pageHead(item,extraRight=''){const bm=isBM(item.id);return `
+ <div class="crumb">${item.g||''}</div>
+ <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+   <h2 class="pt" style="flex:1">${item.t}</h2>
+   ${extraRight}
+   <button class="iconbtn ${bm?'on':''} no-print" title="Bookmark" onclick="toggleBM('${item.id}')" style="font-size:20px">${bm?'★':'☆'}</button>
+   ${!['dashboard','bookmarks','notes'].includes(item.id)?`<button class="btn ghost sm no-print" onclick="toggleDone('${item.id}')">${progress[item.id]?'✓ Completed':'Mark complete'}</button>`:''}
+ </div>`}
+function noteBox(id){const v=notes[id]||'';return `<div class="no-print"><h4>My notes</h4><textarea placeholder="Notes, patterns to revisit, shortcuts…" oninput="setNote('${id}',this.value)">${esc(v)}</textarea></div>`}
+
+/* ============ ROUTER ============ */
+let current=null;
+function go(id){current=id;renderNav();const v=document.getElementById('view');document.getElementById('content').scrollTop=0;document.getElementById('side').classList.remove('open');
+ const item=ALLITEMS.find(i=>i.id===id)||{id,t:id,g:''};
+ let html=pageHead(item);
+ html+=renderBody(id,item);
+ if(!['dashboard','bookmarks','notes','matrix','owaspmatrix','decision','reqbuilder','validation','report','labs','cards','checklist','paths','cheat'].includes(id)) html+=noteBox(id);
+ v.innerHTML=html;
+ if(id==='reqbuilder')initReqBuilder();
+ if(id==='decision')initDecision();
+ if(id==='validation')initValidation();
+ if(id==='report')initReport();
+}
+function renderBody(id,item){
+ // foundation
+ let f=FOUNDATION.find(x=>x.id===id);if(f)return f.body();
+ let t=TOOLS.find(x=>x.id===id);if(t)return t.build(t);
+ let w=WORKFLOWS.find(x=>x.id===id);if(w)return w.body();
+ let vu=VULNS.find(x=>x.id===id);if(vu)return vulnFull(vu);
+ let lab=LABS.find(x=>x.id===id);if(lab)return lab.body();
+ switch(id){
+  case'dashboard':return dashboard();
+  case'mindset':return `<p class="lead">Great testing is a set of habitual questions. Ask these at every endpoint.</p><div class="card">${MINDSET.map((q,i)=>`<div style="padding:7px 0;border-bottom:1px solid var(--border)"><b style="color:var(--acc)">${i+1}.</b> ${q}</div>`).join('')}</div>`;
+  case'masterflow':return `<p class="lead">The end-to-end engagement, from authorization to retest.</p>${flow(['SCOPE','RECON','MAP APPLICATION','CAPTURE TRAFFIC','UNDERSTAND HTTP','IDENTIFY ATTACK SURFACE','AUTHENTICATION','SESSION','AUTHORIZATION','INPUT VALIDATION','API TESTING','BUSINESS LOGIC','CLIENT-SIDE','SERVER-SIDE','CONFIGURATION','ADVANCED TESTING','VALIDATE FINDINGS','CAPTURE EVIDENCE','CWE / OWASP MAPPING','SEVERITY / CVSS','REPORT','RETEST'])}`;
+  case'coremodel':return `<p class="lead">The single most important habit in this guide. Apply it to every test.</p>${flow(['<b>BASELINE</b> — understand normal behavior','<b>MODIFY</b> — change one security-relevant element','<b>COMPARE</b> — response &amp; behavior vs baseline','<b>VALIDATE</b> — was a control actually bypassed?','<b>IMPACT</b> — what can an attacker truly achieve?','<b>REPORT</b> — reproducible evidence &amp; remediation'])}
+   <div class="callout ok">Discovery ≠ Indicator ≠ Validation ≠ Confirmation ≠ Impact ≠ Report. Keep these distinct in your head and in your notes.</div>
+   <div class="card"><h4>The confidence ladder</h4><table class="tbl"><tr><th>Stage</th><th>You can say…</th></tr>
+   <tr><td>Discovery</td><td>"I found something interesting."</td></tr>
+   <tr><td>Indicator</td><td>"This behavior may indicate a security issue."</td></tr>
+   <tr><td>Validation</td><td>"I reproduced unauthorized/security-impacting behavior."</td></tr>
+   <tr><td>Confirmation</td><td>"The security control can be demonstrated as bypassed."</td></tr>
+   <tr><td>Impact</td><td>"I can show what an attacker actually achieves."</td></tr>
+   <tr><td>Report</td><td>"I have reproducible evidence and remediation."</td></tr></table></div>`;
+  case'matrix':return matrixPage();
+  case'falsepos':return falseposPage();
+  case'owaspmatrix':return owaspPage();
+  case'cwe':return cwePage();
+  case'cvss':return cvssPage();
+  case'decision':return decisionPage();
+  case'reqbuilder':return reqBuilderPage();
+  case'validation':return validationPage();
+  case'lookat':return lookatPage();
+  case'report':return reportPage();
+  case'paths':return pathsPage();
+  case'labs':return labsIndex();
+  case'cards':return cardsPage();
+  case'cheat':return cheatPage();
+  case'checklist':return checklistPage();
+  case'bookmarks':return bookmarksPage();
+  case'notes':return notesPage();
+ }
+ return '<p class="muted">Section coming up.</p>';
+}
+
+/* ============ PAGES ============ */
+function pct(done,total){return total?Math.round(done/total*100):0}
+function dashboard(){
+ const doneIds=Object.keys(progress).filter(k=>progress[k]);
+ const done=ALLITEMS.filter(i=>progress[i.id]&&!['dashboard','bookmarks','notes'].includes(i.id)).length;
+ const byGroup=g=>{const items=NAV.find(x=>x.g===g).items;const d=items.filter(i=>progress[i.id]).length;return{d,t:items.length}};
+ const tools=byGroup('Burp Tools'),vulns=NAV.find(x=>x.g==='Vulnerabilities').items,vd=vulns.filter(i=>progress[i.id]).length;
+ const labsDone=LABS.filter(l=>progress[l.id]).length;
+ const p=pct(done,TOTAL);
+ const persist=Store.persistent?'':'<div class="callout no-print" style="margin-top:0"><b>Preview note:</b> browser storage is sandboxed in this pane, so progress here is in-memory. Download the file and open it locally for persistent saving.</div>';
+ return `${persist}
+  <div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><h3 style="margin:0">Overall completion</h3><span style="font-size:26px;font-weight:800">${p}%</span></div><div class="bar"><i style="width:${p}%"></i></div><p class="muted">${done} of ${TOTAL} topics completed · ${bookmarks.length} bookmarks · ${Object.values(checks).filter(Boolean).length} checklist items ticked</p></div>
+  <div class="grid g4">
+   <div class="stat"><div class="n">${done}</div><div class="l">Topics done</div></div>
+   <div class="stat"><div class="n">${TOTAL-done}</div><div class="l">Remaining</div></div>
+   <div class="stat"><div class="n">${vd}/${vulns.length}</div><div class="l">Vuln topics</div></div>
+   <div class="stat"><div class="n">${labsDone}/${LABS.length}</div><div class="l">Labs done</div></div>
+  </div>
+  <h3>Progress by area</h3>
+  <div class="grid g2">${NAV.filter(g=>!['Overview','Personal'].includes(g.g)).map(g=>{const d=g.items.filter(i=>progress[i.id]).length,t=g.items.length,pp=pct(d,t);return `<div class="card"><div style="display:flex;justify-content:space-between"><b>${g.g}</b><span class="muted">${d}/${t}</span></div><div class="bar"><i style="width:${pp}%"></i></div></div>`}).join('')}</div>
+  <h3>Jump back in</h3>
+  <div class="grid g3">${['w-idor','t-repeater','matrix','validation','report','labs'].map(id=>{const it=ALLITEMS.find(x=>x.id===id)||{id,t:id};return `<div class="card" style="cursor:pointer" onclick="go('${id}')"><b>${it.t}</b><div class="muted" style="font-size:12px">${it.g||''}</div></div>`}).join('')}</div>`;
+}
+function matrixPage(){
+ return `<p class="lead">Searchable master matrix. Use the filters, then click a row to open the full 18-point detail card.</p>
+  ${filterBar()}
+  <div id="matrixTbl"></div>${renderMatrixTable()}`;
+}
+let activeFilters={sev:null,cat:null,diff:null,tool:null};
+function filterBar(){
+ const sevs=['crit','high','med','low','info'],cats=['Injection','Access Control','Authentication','API','Server-Side','Client-Side','Configuration','Business Logic'],diffs=['Beginner','Intermediate','Advanced'],tools=['Proxy','Repeater','Intruder','Scanner','Sequencer','Decoder','Comparer','Collaborator'];
+ const row=(label,key,vals,fmt)=>`<div><div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin:8px 0 2px">${label}</div><div class="filters">${vals.map(v=>`<span class="fchip ${activeFilters[key]===v?'on':''}" onclick="setFilter('${key}','${v}')">${fmt?fmt(v):v}</span>`).join('')}<span class="fchip ${!activeFilters[key]?'on':''}" onclick="setFilter('${key}',null)">All</span></div></div>`;
+ return `<div class="card no-print">${row('Severity (indicative)','sev',sevs,v=>SEV[v])}${row('Category','cat',cats)}${row('Difficulty','diff',diffs)}${row('Burp tool','tool',tools)}</div>`;
+}
+function setFilter(k,v){activeFilters[k]=(v==='null'||v===null)?null:v;document.getElementById('view').innerHTML=pageHead({id:'matrix',t:'Vulnerability Master Matrix',g:'Vulnerabilities'})+matrixPage()}
+function renderMatrixTable(){
+ const rows=VULNS.filter(v=>(!activeFilters.sev||v.sevHint===activeFilters.sev)&&(!activeFilters.cat||v.cat===activeFilters.cat)&&(!activeFilters.diff||v.diff===activeFilters.diff)&&(!activeFilters.tool||v.tools.includes(activeFilters.tool)));
+ if(!rows.length)return '<p class="muted">No vulnerabilities match these filters.</p>';
+ return `<table class="tbl"><tr><th>Vulnerability</th><th>OWASP</th><th>CWE</th><th>Burp tools</th><th>Where to test</th><th>What to change</th><th>Vulnerable indicator</th><th>Sev*</th></tr>
+ ${rows.map(v=>`<tr style="cursor:pointer" onclick="go('${v.id}')"><td><b>${v.t}</b></td><td>${v.owasp}</td><td>${v.cwe}</td><td>${v.tools.map(toolBadge).join(' ')}</td><td>${v.matrix.where}</td><td>${v.matrix.change}</td><td>${v.matrix.ind}</td><td>${sevBadge(v.sevHint)}</td></tr>`).join('')}</table>
+ <p class="muted">* Indicative only. Severity depends on the verified scenario and context — never assign from the name.</p>`;
+}
+function falseposPage(){
+ const items=[['Different status code','A 302/403/500 can arise from many benign causes; needs a security-relevant explanation.'],['Different response size','Length changes with content, not necessarily with a vulnerability.'],['Error message','An error indicates unexpected input handling, not automatically injection.'],['Reflected input','Reflection is only XSS if it executes in a code context.'],['CORS header present','Permissive config ≠ exploitable data theft.'],['Missing security header','An indicator; severity depends on a reachable weakness it would have mitigated.'],['Scanner alert','A lead requiring manual reproduction.'],['Timing difference','Network jitter mimics time-based oracles; needs repeatable, controlled deltas.'],['Different content for two users','May be legitimate personalization, not IDOR.']];
+ return `<p class="lead"><b>"Interesting behavior" ≠ "vulnerability."</b> These signals are indicators. Each needs additional evidence before it becomes a finding.</p>
+  <table class="tbl"><tr><th>Indicator</th><th>Why it isn't proof — what you still need</th></tr>${items.map(i=>`<tr><td><b>${i[0]}</b></td><td>${i[1]}</td></tr>`).join('')}</table>
+  <div class="callout ok">Rule of thumb: if you can't reproduce it, isolate the single cause, and explain the crossed trust boundary, you have an indicator — not a finding.</div>`;
+}
+function owaspPage(){
+ return `<p class="lead">Connect each OWASP Top 10 category to the vulnerability, Burp tool, testing location, manual test, and evidence.</p>
+  <table class="tbl"><tr><th>OWASP category</th><th>Vulnerabilities</th><th>Burp tool</th><th>Where</th><th>Manual test</th><th>Evidence</th></tr>
+  ${OWASP.map(o=>`<tr><td><b>${o.c}</b></td><td>${o.v}</td><td>${o.tool}</td><td>${o.loc}</td><td>${o.test}</td><td>${o.ev}</td></tr>`).join('')}</table>
+  <p class="muted">Uses current OWASP Top 10 (2021) terminology; API items reference the OWASP API Security Top 10 where relevant.</p>`;
+}
+function cwePage(){
+ return `<p class="lead">CWE should describe the actual <b>root-cause weakness</b>, not the impact and not a vague parent.</p>
+  <div class="card"><h4>CWE validation checklist</h4>${miniChecklist('cwe',['Does the CWE describe the weakness (root cause), not the impact?','Is it specific rather than a too-generic parent (e.g. avoid bare CWE-20 when CWE-89 fits)?','Is it the current, non-deprecated ID?','Does the mapping match what you actually demonstrated?','Would another tester agree the CWE fits the evidence?'])}</div>
+  <div class="grid g2"><div class="card"><h4>Common mistakes</h4><ul><li>Using CWE-20 (Improper Input Validation) for everything</li><li>Choosing a CWE that describes impact (e.g. data exposure) instead of cause (e.g. missing authz)</li><li>Citing a deprecated CWE</li><li>Over-broad parent when a precise child exists</li></ul></div>
+  <div class="card"><h4>Good pairings</h4><ul><li>SQLi → CWE-89</li><li>XSS → CWE-79</li><li>IDOR → CWE-639</li><li>SSRF → CWE-918</li><li>JWT signature → CWE-347</li><li>Permissive CORS → CWE-942</li></ul></div></div>`;
+}
+function cvssPage(){
+ return `<p class="lead">Severity follows verified impact and context — never the vulnerability name.</p>
+  <div class="callout crit">"IDOR" is not automatically High. "Missing header" is not automatically Medium. "XSS" is not automatically High. Reason through the actual scenario.</div>
+  <div class="card"><h4>Reason through each metric</h4><div class="kv">
+   <div class="k">Attack Vector</div><div class="v">Network / Adjacent / Local / Physical — how remote is exploitation?</div>
+   <div class="k">Attack Complexity</div><div class="v">Are special conditions required, or is it reliable?</div>
+   <div class="k">Privileges Required</div><div class="v">None / Low / High — what access must the attacker start with?</div>
+   <div class="k">User Interaction</div><div class="v">Does a victim have to do something (e.g. click)?</div>
+   <div class="k">Scope</div><div class="v">Does impact stay in one component or cross a trust boundary?</div>
+   <div class="k">Confidentiality</div><div class="v">What data can actually be read?</div>
+   <div class="k">Integrity</div><div class="v">What can actually be modified?</div>
+   <div class="k">Availability</div><div class="v">Can service be degraded/denied?</div>
+  </div></div>
+  <p>The final score depends on the <b>verified</b> scenario. Document your reasoning per metric so the score is defensible.</p>`;
+}
+function decisionPage(){
+ return `<p class="lead">Pick what you're testing; get the recommended Burp tool chain.</p>
+  <div class="card"><div id="deopts">${Object.keys(DECISION).map(k=>`<span class="deopt" data-k="${esc(k)}" onclick="pickDE(this)">${k}</span>`).join('')}</div>
+  <div id="deout" style="margin-top:14px"></div></div>`;
+}
+function pickDE(el){document.querySelectorAll('#deopts .deopt').forEach(x=>x.classList.remove('on'));el.classList.add('on');const k=el.getAttribute('data-k').replace(/&amp;/g,'&');document.getElementById('deout').innerHTML=`<div class="callout ok"><b>${k}</b> → ${DECISION[k]}</div>`}
+function initDecision(){}
+function reqBuilderPage(){
+ return `<p class="lead">An educational inspector. Fill a request, then generate a "what should I inspect?" review. It does not send anything.</p>
+  <div class="card reqbuilder">
+   <div class="row"><label class="muted">Method</label><select class="fld" id="rb-m"><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option><option>OPTIONS</option><option>HEAD</option></select></div>
+   <div class="row"><label class="muted">Host</label><input class="fld" id="rb-h" value="api.example.test"></div>
+   <div class="row"><label class="muted">Path</label><input class="fld" id="rb-p" value="/api/v1/users/1001"></div>
+   <div class="row"><label class="muted">Auth header</label><input class="fld" id="rb-a" value="Bearer <TEST-TOKEN>"></div>
+   <div class="row"><label class="muted">Cookie</label><input class="fld" id="rb-c" value="session=<TEST-SESSION>"></div>
+   <div class="row"><label class="muted">Content-Type</label><input class="fld" id="rb-ct" value="application/json"></div>
+   <div class="row"><label class="muted">Body</label><textarea id="rb-b">{"userId":"1001"}</textarea></div>
+   <button class="btn" onclick="buildReq()">Inspect this request</button>
+  </div>
+  <div id="rb-out"></div>`;
+}
+function initReqBuilder(){buildReq()}
+function buildReq(){
+ const m=val('rb-m'),h=val('rb-h'),p=val('rb-p'),a=val('rb-a'),c=val('rb-c'),ct=val('rb-ct'),b=val('rb-b');
+ const raw=`${m} ${p} HTTP/1.1\nHost: ${h}\n${a?'Authorization: '+a+'\n':''}${c?'Cookie: '+c+'\n':''}${['POST','PUT','PATCH'].includes(m)?'Content-Type: '+ct+'\n':''}\n${['POST','PUT','PATCH'].includes(m)?b:''}`;
+ const hasId=/\/(\d{2,}|[0-9a-f-]{8,})(\/|$)/i.test(p)||/id/i.test(b);
+ const tips=[];
+ if(hasId)tips.push('<b>Object ID present</b> → test IDOR/BOLA: swap the identifier and/or the auth identity and compare (Repeater + Comparer).');
+ if(a)tips.push('<b>Authorization header</b> → remove it, corrupt it, or swap to another user to test authentication &amp; authorization.');
+ if(/graphql/i.test(p))tips.push('<b>GraphQL endpoint</b> → try introspection and per-field authorization.');
+ if(m==='GET'&&hasId)tips.push('Try method swap (GET→POST/PUT/DELETE) to probe method-level authorization.');
+ if(ct&&['POST','PUT','PATCH'].includes(m))tips.push('<b>Body parser</b> → test injection appropriate to '+ct+', and mass assignment (add unexpected fields like isAdmin).');
+ if(/url|link|callback|webhook|import|image/i.test(b))tips.push('<b>URL-like value</b> → SSRF candidate (Repeater + Collaborator).');
+ tips.push('Check the <b>response</b>: status, Set-Cookie, security headers, reflected input, timing, and any excessive data returned.');
+ const el=document.getElementById('rb-out');
+ el.innerHTML=`<h3>Request</h3>${httpReq(raw)}<h3>What should I inspect?</h3><div class="card"><ul>${tips.map(t=>`<li>${t}</li>`).join('')}</ul></div>`;
+}
+function val(id){const e=document.getElementById(id);return e?e.value:''}
+const VSTEPS=['Can I reproduce it?','Can I explain why it is security relevant?','Can I demonstrate unauthorized behavior?','Can I determine impact?','Can another tester reproduce it?','Is the affected endpoint in scope?','Is there a legitimate business explanation?','Can I map it to a reasonable CWE?','Can I justify severity?','Can I provide remediation?'];
+function validationPage(){
+ return `<p class="lead">Answer each step. Do not classify a finding without working through them.</p>
+  <div class="card">${VSTEPS.map((s,i)=>`<div class="chk" id="vc-${i}"><input type="checkbox" onchange="vsync()"><label><b>Step ${i+1}.</b> ${s}</label></div>`).join('')}</div>
+  <div id="vres"></div>`;
+}
+function initValidation(){vsync()}
+function vsync(){
+ const boxes=VSTEPS.map((_,i)=>document.querySelector('#vc-'+i+' input').checked);
+ const n=boxes.filter(Boolean).length;
+ const inScope=boxes[5],hasBiz=boxes[6];
+ let verdict,cls;
+ if(hasBiz&&n<9){verdict='⚠ Possible FALSE POSITIVE — a legitimate business explanation may exist. Investigate before reporting.';cls='';}
+ else if(!inScope&&n>0){verdict='⛔ OUT OF SCOPE — do not proceed until scope is confirmed.';cls='crit';}
+ else if(n>=9){verdict='✅ CONFIRMED FINDING — reproducible, impactful, mapped, and remediable.';cls='ok';}
+ else if(n>=5){verdict='🔎 NEEDS VALIDATION — promising, but not yet demonstrable end-to-end.';cls='';}
+ else{verdict='• POTENTIAL FINDING — early indicator only.';cls='';}
+ document.getElementById('vres').innerHTML=`<div class="callout ${cls}"><b>${n}/10 satisfied.</b><br>${verdict}</div>`;
+}
+function lookatPage(){
+ const block=(title,items)=>`<div class="card"><h4>${title}</h4><div class="chips">${items.map(i=>`<span class="badge b-tag">${i}</span>`).join('')}</div></div>`;
+ return `<p class="lead">A reusable checklist for mentally inspecting any HTTP request/response.</p>
+  <div class="grid g2">
+  ${block('METHOD',['GET','POST','PUT','PATCH','DELETE','OPTIONS','HEAD'])}
+  ${block('URL',['Path','Parameters','File names','IDs'])}
+  ${block('HEADERS',['Authorization','Cookie','Origin','Referer','Host','Content-Type','Accept','User-Agent','Forwarded headers'])}
+  ${block('BODY',['JSON','XML','Form data','Multipart','GraphQL','Raw data'])}
+  </div>
+  ${block('RESPONSE',['Status code','Headers','Cookies','Body','Errors','Timing','Redirects','Reflections'])}`;
+}
+function reportPage(){
+ return `<p class="lead">Enter a validated finding, then print or save as PDF (your browser's Print → Save as PDF). Everything stays local.</p>
+  <div class="grid g2 no-print">
+   ${rf('rp-title','Title','IDOR in order retrieval endpoint')}
+   ${rf('rp-endpoint','Affected endpoint','GET /api/v1/orders/{id}')}
+   ${rf('rp-param','Parameter','id')}
+   ${rfsel('rp-sev','Severity',['Critical','High','Medium','Low','Informational'])}
+   ${rf('rp-cwe','CWE','CWE-639')}
+   ${rf('rp-owasp','OWASP category','A01: Broken Access Control')}
+   ${rf('rp-cvss','CVSS (your reasoned vector)','e.g. AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N')}
+  </div>
+  <div class="no-print">
+   ${rfa('rp-desc','Description')}
+   ${rfa('rp-impact','Impact')}
+   ${rfa('rp-steps','Steps to reproduce')}
+   ${rfa('rp-evidence','Evidence (describe captures)')}
+   ${rfa('rp-expected','Expected behavior')}
+   ${rfa('rp-actual','Actual behavior')}
+   ${rfa('rp-rec','Recommendation')}
+   ${rfa('rp-ref','References')}
+   <div style="display:flex;gap:10px;margin-top:12px"><button class="btn" onclick="genReport()">Generate report</button><button class="btn ghost" onclick="window.print()">Print / Save PDF</button></div>
+  </div>
+  <div id="rp-out" style="margin-top:20px"></div>`;
+}
+function rf(id,label,ph){return `<div class="field"><label>${label}</label><input class="fld" id="${id}" placeholder="${ph||''}"></div>`}
+function rfsel(id,label,opts){return `<div class="field"><label>${label}</label><select class="fld" id="${id}">${opts.map(o=>`<option>${o}</option>`).join('')}</select></div>`}
+function rfa(id,label){return `<div class="field"><label>${label}</label><textarea id="${id}"></textarea></div>`}
+function initReport(){}
+function genReport(){
+ const g=id=>esc(val(id)||'—').replace(/\n/g,'<br>');
+ const out=`<div class="card"><h2 class="pt" style="font-size:22px">${g('rp-title')}</h2>
+  <div class="tag-row">${sevBadge(({Critical:'crit',High:'high',Medium:'med',Low:'low',Informational:'info'})[val('rp-sev')]||'info')} <span class="badge b-tag">${g('rp-cwe')}</span> <span class="badge b-tag">${g('rp-owasp')}</span></div>
+  <div class="kv"><div class="k">Affected endpoint</div><div class="v">${g('rp-endpoint')}</div><div class="k">Parameter</div><div class="v">${g('rp-param')}</div><div class="k">CVSS</div><div class="v">${g('rp-cvss')}</div></div>
+  <h4>Description</h4><p>${g('rp-desc')}</p>
+  <h4>Impact</h4><p>${g('rp-impact')}</p>
+  <h4>Steps to reproduce</h4><p>${g('rp-steps')}</p>
+  <h4>Evidence</h4><p>${g('rp-evidence')}</p>
+  <div class="grid g2"><div class="card"><h4>Expected behavior</h4><p>${g('rp-expected')}</p></div><div class="card"><h4>Actual behavior</h4><p>${g('rp-actual')}</p></div></div>
+  <h4>Recommendation</h4><p>${g('rp-rec')}</p>
+  <h4>References</h4><p>${g('rp-ref')}</p></div>`;
+ document.getElementById('rp-out').innerHTML=out;
+}
+function pathsPage(){
+ const lvl=(t,items)=>`<div class="card"><h3 style="margin-top:0">${t}</h3><div class="chips">${items.map(i=>`<span class="badge b-tag">${i}</span>`).join('')}</div></div>`;
+ return `<p class="lead">Structured routes from first proxy to advanced chains.</p>
+  ${lvl('Level 1 — Beginner',['HTTP','Proxy','Target','HTTP History','Repeater','Decoder','Basic authentication testing','Basic authorization testing','Basic input testing'])}
+  ${lvl('Level 2 — Intermediate',['Intruder','Scanner','Sequencer','API testing','JWT','OAuth','GraphQL','WebSocket','SSRF','File upload','Business logic'])}
+  ${lvl('Level 3 — Advanced',['Request smuggling','Cache poisoning','Race conditions','Advanced authorization','Advanced SSRF','Complex business logic','Multi-step attack chains','Extensions','Automation','Custom workflows'])}
+  <h3>30-Day Burp Plan</h3><div class="card"><ol><li><b>Days 1–7:</b> HTTP fluency, Proxy setup, HTTP History mining, Repeater basics.</li><li><b>Days 8–14:</b> Access control (IDOR/BOLA) with two accounts; Comparer; auth testing.</li><li><b>Days 15–21:</b> Input validation, Intruder, Decoder; XSS &amp; SQLi labs.</li><li><b>Days 22–30:</b> API + JWT + CORS; write your first structured reports.</li></ol></div>
+  <h3>60-Day VAPT Plan</h3><div class="card"><ol><li><b>Weeks 1–2:</b> Everything in the 30-day plan, consolidated.</li><li><b>Weeks 3–4:</b> SSRF + Collaborator, file upload, GraphQL, WebSocket.</li><li><b>Weeks 5–6:</b> Business logic &amp; race conditions; Sequencer; Scanner validation discipline.</li><li><b>Weeks 7–8:</b> Advanced (smuggling, cache, host header), extensions, full engagement dry-run + report.</li></ol></div>`;
+}
+function labsIndex(){return `<p class="lead">Fictional, authorized-lab scenarios. Each gives a starting request, what to modify/observe, secure vs vulnerable behavior, and validation criteria.</p>
+  <div class="grid g2">${LABS.map(l=>`<div class="card" style="cursor:pointer" onclick="go('${l.id}')"><div class="tag-row"><b>${l.t}</b> <span class="badge b-tag">${l.diff}</span> ${progress[l.id]?'<span class="badge b-low">✓ done</span>':''}</div><p class="muted" style="margin:4px 0 0">Open the lab →</p></div>`).join('')}</div>
+  <div class="callout crit no-print">Only use clearly fictional or explicitly authorized environments. Never test third-party or production systems without written authorization.</div>`}
+function cardsPage(){return `<p class="lead">Grab-and-go workflows for common situations.</p>${CARDS.map((c,i)=>`<div class="acc ${i===0?'open':''}"><div class="ah" onclick="this.parentNode.classList.toggle('open')">${c.t}<span class="ar">▶</span></div><div class="ab">${flow(c.s)}</div></div>`).join('')}`}
+function cheatPage(){return `<p class="lead">One-line reminders of what each Burp tool is for.</p><table class="tbl"><tr><th>Tool</th><th>Use</th></tr>${CHEAT.map(c=>`<tr><td><b>${c[0]}</b></td><td>${c[1]}</td></tr>`).join('')}</table>
+  <h3>Encoding quick-ID</h3><table class="tbl"><tr><th>Pattern</th><th>Encoding</th></tr><tr><td>%2F</td><td>URL</td></tr><tr><td>ends = / ==</td><td>Base64</td></tr><tr><td>eyJ….….…</td><td>JWT</td></tr><tr><td>&amp;#x27;</td><td>HTML entity</td></tr></table>`}
+function checklistPage(){
+ const sec=(name,ns,items)=>`<div class="acc open"><div class="ah" onclick="this.parentNode.classList.toggle('open')">${name}<span class="ar">▶</span></div><div class="ab">${miniChecklist(ns,items)}</div></div>`;
+ return `<p class="lead">The master assessment checklist. Ticks persist locally.</p>
+  ${sec('Recon','ck-recon',['Scope confirmed','Domains identified','Subdomains identified','Application mapped'])}
+  ${sec('Authentication','ck-authn',['Login','Registration','Password reset','MFA','Session management'])}
+  ${sec('Authorization','ck-authz',['Horizontal access','Vertical access','Object access','Function access'])}
+  ${sec('Input Validation','ck-input',['SQLi','XSS','Command Injection','SSTI','Path Traversal','XXE'])}
+  ${sec('API','ck-api',['BOLA','BFLA','Mass assignment','Rate limiting','Excessive data exposure','API authentication'])}
+  ${sec('Configuration','ck-config',['Security headers','CORS','TLS','HTTP methods','Error messages','Debug endpoints'])}
+  ${sec('Business Logic','ck-biz',['Workflow bypass','Replay','Race condition','Parameter manipulation','State manipulation'])}
+  ${sec('Advanced','ck-adv',['SSRF','Request smuggling','Cache poisoning','WebSocket','GraphQL','OAuth','JWT'])}`;
+}
+function bookmarksPage(){
+ if(!bookmarks.length)return '<p class="muted">No bookmarks yet. Click the ☆ on any page to save it here.</p>';
+ return `<div class="grid g2">${bookmarks.map(id=>{const it=ALLITEMS.find(x=>x.id===id)||{id,t:id,g:''};return `<div class="card" style="cursor:pointer" onclick="go('${id}')"><div class="tag-row"><b>${it.t}</b></div><div class="muted" style="font-size:12px">${it.g}</div></div>`}).join('')}</div>`;
+}
+function notesPage(){
+ const keys=Object.keys(notes).filter(k=>notes[k]&&notes[k].trim());
+ if(!keys.length)return '<p class="muted">No notes yet. Add notes at the bottom of any topic page.</p>';
+ return keys.map(k=>{const it=ALLITEMS.find(x=>x.id===k)||{id:k,t:k};return `<div class="card"><div class="tag-row"><b style="cursor:pointer" onclick="go('${k}')">${it.t}</b> <span class="badge b-tag">${it.g||''}</span></div><p style="white-space:pre-wrap">${esc(notes[k])}</p></div>`}).join('');
+}
+
+/* ============ SEARCH ============ */
+const SEARCHIDX=(()=>{const idx=[];
+ FOUNDATION.forEach(x=>idx.push({id:x.id,cat:'Foundation',nm:x.t,ds:x.b,tools:''}));
+ TOOLS.forEach(x=>idx.push({id:x.id,cat:'Burp Tool',nm:x.t,ds:x.b,tools:''}));
+ WORKFLOWS.forEach(x=>idx.push({id:x.id,cat:'Workflow',nm:x.t,ds:x.b,tools:''}));
+ VULNS.forEach(x=>idx.push({id:x.id,cat:'Vulnerability',nm:x.t,ds:x.owasp+' · '+x.cwe,tools:x.tools.join(', ')}));
+ LABS.forEach(x=>idx.push({id:x.id,cat:'Lab',nm:x.t,ds:x.diff,tools:''}));
+ [['matrix','Vulnerability Master Matrix'],['owaspmatrix','OWASP Testing Matrix'],['cwe','CWE Mapping'],['cvss','CVSS Guidance'],['decision','Which Burp Tool?'],['reqbuilder','Request Inspector'],['validation','Finding Validation Engine'],['report','VAPT Report Builder'],['checklist','Master VAPT Checklist'],['cheat','Burp Cheat Sheet'],['paths','Learning Paths'],['lookat','What Should I Look At?'],['falsepos','False Positive Training'],['mindset','Master Burp Mindset'],['masterflow','Master Workflow'],['coremodel','Baseline→Modify→Compare→Validate']].forEach(p=>idx.push({id:p[0],cat:'Reference',nm:p[1],ds:'',tools:''}));
+ return idx})();
+function doSearch(q){const box=document.getElementById('sres');q=q.trim().toLowerCase();if(!q){box.classList.remove('show');return}
+ const res=SEARCHIDX.filter(x=>(x.nm+' '+x.ds+' '+x.cat+' '+x.tools).toLowerCase().includes(q)).slice(0,12);
+ if(!res.length){box.innerHTML='<div class="sres"><div class="ds">No matches.</div></div>';box.classList.add('show');return}
+ box.innerHTML=res.map(r=>`<div class="sres" onclick="go('${r.id}');document.getElementById('sres').classList.remove('show');document.getElementById('q').value=''"><div class="cat">${r.cat}${r.tools?' · '+r.tools:''}</div><div class="nm">${r.nm}</div>${r.ds?`<div class="ds">${r.ds}</div>`:''}</div>`).join('');
+ box.classList.add('show');
+}
+
+/* ============ INIT ============ */
+document.getElementById('q').addEventListener('input',e=>doSearch(e.target.value));
+document.getElementById('q').addEventListener('blur',()=>setTimeout(()=>document.getElementById('sres').classList.remove('show'),200));
+document.getElementById('theme').addEventListener('click',()=>{const h=document.documentElement;const nt=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',nt);Store.set('theme',nt)});
+document.documentElement.setAttribute('data-theme',Store.get('theme','dark'));
+renderNav();go('dashboard');
+</script>
+</body>
+</html>
